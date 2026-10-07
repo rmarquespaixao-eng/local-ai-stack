@@ -1,0 +1,11 @@
+Você é o PLANEJADOR. Não leia MEMORY.md, não consulte RAG/memória e ignore rotinas de boot do AGENTS.md. O repositório é {repo}: trabalhe SOMENTE nele.
+
+Contexto: o projeto (Java 25, Gradle multi-módulo, Spring Boot 4, Spring AI 2, Jackson 3, -Werror, hexagonal) é a versão 1, entregue com ./gradlew build verde. FEATURE.md é um pedido do dono do produto. SPEC.md e TASKS.md atuais descrevem a versão 1.
+
+Sua tarefa é PLANEJAR a feature para que OUTRO modelo, sem contexto nenhum além do repositório, a implemente sozinho seguindo só SPEC.md e TASKS.md:
+1. Leia FEATURE.md, SPEC.md, TASKS.md e o código de main e de test dos três módulos. Não leia build/, .gradle/ nem ~/.gradle.
+2. Reescreva SPEC.md como a fonte da verdade COMPLETA da versão 2: tudo o que já existe e continua valendo, mais a feature. Defina contratos exatos (pacotes, classes, assinaturas Java, JSON, tabelas de status/corpo, ordem das validações, formato de texto, casos de borda) e as decisões de desenho (onde fica cada responsabilidade em cada módulo), sem ambiguidade. Mantenha as restrições técnicas e as notas de versão da v1.
+3. Reescreva TASKS.md no mesmo formato do atual: tarefas pequenas, em ordem, cada uma com os arquivos a criar/alterar, os testes a escrever, o comando de verificação (./gradlew build --console=plain -q) e a mensagem de commit (Conventional Commits). Todas começam desmarcadas ([ ]).
+4. Garanta compatibilidade: o build precisa continuar compilando e verde depois de CADA tarefa. Se algum teste ou código existente quebra ou contradiz a feature, diga no TASKS.md o que mudar e em qual tarefa.
+5. NÃO escreva código de produção nem testes. NÃO altere *.gradle.kts, gradle/, gradlew nem FEATURE.md.
+6. Termine com git add -A && git commit -m "docs: plan v2 (notes, max steps, list runs)" e git status limpo.

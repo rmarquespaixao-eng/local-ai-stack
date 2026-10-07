@@ -1,0 +1,394 @@
+diff --color -ruN -x build -x .gradle /tmp/tmp.sZVtsE162L/agent-app/src/main/java/dev/agente/app/config/InMemoryRunRepository.java /tmp/tmp.rSTxaHe2Qv/agent-app/src/main/java/dev/agente/app/config/InMemoryRunRepository.java
+--- /tmp/tmp.sZVtsE162L/agent-app/src/main/java/dev/agente/app/config/InMemoryRunRepository.java	2026-10-05 12:01:48.000000000 -0300
++++ /tmp/tmp.rSTxaHe2Qv/agent-app/src/main/java/dev/agente/app/config/InMemoryRunRepository.java	2026-10-05 13:05:13.298856947 -0300
+@@ -3,21 +3,31 @@
+ import dev.agente.core.domain.AgentRun;
+ import dev.agente.core.port.RunRepository;
+ 
++import java.util.ArrayList;
++import java.util.Collections;
++import java.util.LinkedHashMap;
++import java.util.List;
+ import java.util.Map;
+ import java.util.Optional;
+-import java.util.concurrent.ConcurrentHashMap;
+ 
+ public class InMemoryRunRepository implements RunRepository {
+ 
+-    private final Map<String, AgentRun> runs = new ConcurrentHashMap<>();
++    private final Map<String, AgentRun> runs = new LinkedHashMap<>();
+ 
+     @Override
+-    public void save(AgentRun run) {
++    public synchronized void save(AgentRun run) {
+         runs.put(run.id(), run);
+     }
+ 
+     @Override
+-    public Optional<AgentRun> findById(String id) {
++    public synchronized Optional<AgentRun> findById(String id) {
+         return Optional.ofNullable(runs.get(id));
+     }
++
++    @Override
++    public synchronized List<AgentRun> findAll() {
++        List<AgentRun> all = new ArrayList<>(runs.values());
++        Collections.reverse(all);
++        return List.copyOf(all);
++    }
+ }
+diff --color -ruN -x build -x .gradle /tmp/tmp.sZVtsE162L/agent-app/src/main/java/dev/agente/app/tools/NotesReadTool.java /tmp/tmp.rSTxaHe2Qv/agent-app/src/main/java/dev/agente/app/tools/NotesReadTool.java
+--- /tmp/tmp.sZVtsE162L/agent-app/src/main/java/dev/agente/app/tools/NotesReadTool.java	1969-12-31 21:00:00.000000000 -0300
++++ /tmp/tmp.rSTxaHe2Qv/agent-app/src/main/java/dev/agente/app/tools/NotesReadTool.java	2026-10-05 13:05:13.298618096 -0300
+@@ -0,0 +1,19 @@
++package dev.agente.app.tools;
++
++import dev.agente.core.port.RunScopedTool;
++import java.util.Map;
++import org.springframework.stereotype.Component;
++
++@Component
++public class NotesReadTool implements RunScopedTool {
++    public String name() { return "notes.read"; }
++    public String description() { return "Lê uma nota do run: arg key"; }
++    public String execute(Map<String, String> args) { throw new IllegalStateException("run_scope_required"); }
++    public String execute(Map<String, String> args, Map<String, String> notes) {
++        String key = args.get("key");
++        if (key == null || key.isBlank()) throw new IllegalArgumentException("invalid_args");
++        String v = notes.get(key);
++        if (v == null) throw new IllegalArgumentException("note_not_found");
++        return v;
++    }
++}
+diff --color -ruN -x build -x .gradle /tmp/tmp.sZVtsE162L/agent-app/src/main/java/dev/agente/app/tools/NotesWriteTool.java /tmp/tmp.rSTxaHe2Qv/agent-app/src/main/java/dev/agente/app/tools/NotesWriteTool.java
+--- /tmp/tmp.sZVtsE162L/agent-app/src/main/java/dev/agente/app/tools/NotesWriteTool.java	1969-12-31 21:00:00.000000000 -0300
++++ /tmp/tmp.rSTxaHe2Qv/agent-app/src/main/java/dev/agente/app/tools/NotesWriteTool.java	2026-10-05 13:05:13.297895847 -0300
+@@ -0,0 +1,19 @@
++package dev.agente.app.tools;
++
++import dev.agente.core.port.RunScopedTool;
++import java.util.Map;
++import org.springframework.stereotype.Component;
++
++@Component
++public class NotesWriteTool implements RunScopedTool {
++    public String name() { return "notes.write"; }
++    public String description() { return "Grava uma nota do run: args key, value"; }
++    public String execute(Map<String, String> args) { throw new IllegalStateException("run_scope_required"); }
++    public String execute(Map<String, String> args, Map<String, String> notes) {
++        String key = args.get("key");
++        String value = args.get("value");
++        if (key == null || key.isBlank() || value == null) throw new IllegalArgumentException("invalid_args");
++        notes.put(key, value);
++        return "ok";
++    }
++}
+diff --color -ruN -x build -x .gradle /tmp/tmp.sZVtsE162L/agent-app/src/main/java/dev/agente/app/web/RunController.java /tmp/tmp.rSTxaHe2Qv/agent-app/src/main/java/dev/agente/app/web/RunController.java
+--- /tmp/tmp.sZVtsE162L/agent-app/src/main/java/dev/agente/app/web/RunController.java	2026-10-05 12:01:48.000000000 -0300
++++ /tmp/tmp.rSTxaHe2Qv/agent-app/src/main/java/dev/agente/app/web/RunController.java	2026-10-05 13:05:13.307518358 -0300
+@@ -17,7 +17,10 @@
+ import org.springframework.web.bind.annotation.RestController;
+ import tools.jackson.databind.JsonNode;
+ 
++import dev.agente.core.domain.RunStatus;
++import org.springframework.web.bind.annotation.RequestParam;
+ import java.util.LinkedHashMap;
++import java.util.TreeMap;
+ import java.util.Map;
+ 
+ @RestController
+@@ -41,8 +44,19 @@
+             return error(HttpStatus.BAD_REQUEST, "invalid_goal");
+         }
+ 
++        if (goal.asString().isBlank() || goal.asString().strip().length() > 500) {
++            return error(HttpStatus.BAD_REQUEST, "invalid_goal");
++        }
++        JsonNode ms = body.get("maxSteps");
++        Integer maxSteps = null;
++        if (ms != null && !ms.isNull()) {
++            if (!ms.isIntegralNumber() || !ms.canConvertToInt() || ms.asInt() < 1 || ms.asInt() > 20) {
++                return error(HttpStatus.BAD_REQUEST, "invalid_max_steps");
++            }
++            maxSteps = ms.asInt();
++        }
+         try {
+-            AgentRun run = service.start(goal.asString());
++            AgentRun run = service.start(goal.asString(), maxSteps);
+             return ResponseEntity.status(HttpStatus.CREATED)
+                     .header("Location", "/runs/" + run.id())
+                     .body(toJson(run));
+@@ -51,6 +65,19 @@
+         }
+     }
+ 
++    @GetMapping("/runs")
++    public ResponseEntity<Object> list(@RequestParam(required = false) String status) {
++        RunStatus st = null;
++        if (status != null) {
++            if (!status.equals("SUCCEEDED") && !status.equals("FAILED")) {
++                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", "invalid_status"));
++            }
++            st = RunStatus.valueOf(status);
++        }
++        return ResponseEntity.ok(service.list(st).stream()
++                .map(r -> Map.of("id", r.id(), "goal", r.goal(), "status", r.status().name())).toList());
++    }
++
+     @GetMapping("/runs/{id}")
+     public ResponseEntity<Map<String, Object>> get(@PathVariable String id) {
+         return service.find(id)
+@@ -78,6 +105,7 @@
+         json.put("steps", run.steps().stream().map(RunController::stepJson).toList());
+         json.put("answer", run.answer());
+         json.put("failureReason", run.failureReason());
++        json.put("notes", new TreeMap<>(run.notes()));
+         return json;
+     }
+ 
+diff --color -ruN -x build -x .gradle /tmp/tmp.sZVtsE162L/agent-core/src/main/java/dev/agente/core/application/AgentService.java /tmp/tmp.rSTxaHe2Qv/agent-core/src/main/java/dev/agente/core/application/AgentService.java
+--- /tmp/tmp.sZVtsE162L/agent-core/src/main/java/dev/agente/core/application/AgentService.java	2026-10-05 12:01:48.000000000 -0300
++++ /tmp/tmp.rSTxaHe2Qv/agent-core/src/main/java/dev/agente/core/application/AgentService.java	2026-10-05 13:04:22.928650122 -0300
+@@ -6,7 +6,9 @@
+ import dev.agente.core.port.IdGenerator;
+ import dev.agente.core.port.RunRepository;
+ 
++import java.util.List;
+ import java.util.Optional;
++import dev.agente.core.domain.RunStatus;
+ 
+ public final class AgentService {
+ 
+@@ -21,12 +23,21 @@
+     }
+ 
+     public AgentRun start(String rawGoal) {
++        return start(rawGoal, null);
++    }
++
++    public AgentRun start(String rawGoal, Integer maxSteps) {
+         Goal goal = new Goal(rawGoal);
+-        AgentRun run = engine.run(ids.next(), goal);
++        String id = ids.next();
++        AgentRun run = maxSteps == null ? engine.run(id, goal) : engine.run(id, goal, maxSteps);
+         runs.save(run);
+         return run;
+     }
+ 
++    public List<AgentRun> list(RunStatus status) {
++        return runs.findAll().stream().filter(r -> status == null || r.status() == status).toList();
++    }
++
+     public Optional<AgentRun> find(String id) {
+         return runs.findById(id);
+     }
+diff --color -ruN -x build -x .gradle /tmp/tmp.sZVtsE162L/agent-core/src/main/java/dev/agente/core/domain/AgentRun.java /tmp/tmp.rSTxaHe2Qv/agent-core/src/main/java/dev/agente/core/domain/AgentRun.java
+--- /tmp/tmp.sZVtsE162L/agent-core/src/main/java/dev/agente/core/domain/AgentRun.java	2026-10-05 12:01:48.000000000 -0300
++++ /tmp/tmp.rSTxaHe2Qv/agent-core/src/main/java/dev/agente/core/domain/AgentRun.java	2026-10-05 13:04:22.914893925 -0300
+@@ -1,18 +1,33 @@
+ package dev.agente.core.domain;
+ 
+ import java.util.List;
++import java.util.Map;
+ 
+-public record AgentRun(String id, String goal, RunStatus status, List<Step> steps, String answer, String failureReason) {
++public record AgentRun(String id, String goal, RunStatus status, List<Step> steps, String answer, String failureReason,
++        Map<String, String> notes) {
+ 
+     public AgentRun {
+         steps = List.copyOf(steps);
++        notes = notes == null ? Map.of() : Map.copyOf(notes);
++    }
++
++    public AgentRun(String id, String goal, RunStatus status, List<Step> steps, String answer, String failureReason) {
++        this(id, goal, status, steps, answer, failureReason, Map.of());
+     }
+ 
+     public static AgentRun succeeded(String id, Goal goal, List<Step> steps, String answer) {
+-        return new AgentRun(id, goal.value(), RunStatus.SUCCEEDED, steps, answer, null);
++        return succeeded(id, goal, steps, answer, Map.of());
+     }
+ 
+     public static AgentRun failed(String id, Goal goal, List<Step> steps, String reason) {
+-        return new AgentRun(id, goal.value(), RunStatus.FAILED, steps, null, reason);
++        return failed(id, goal, steps, reason, Map.of());
++    }
++
++    public static AgentRun succeeded(String id, Goal goal, List<Step> steps, String answer, Map<String, String> notes) {
++        return new AgentRun(id, goal.value(), RunStatus.SUCCEEDED, steps, answer, null, notes);
++    }
++
++    public static AgentRun failed(String id, Goal goal, List<Step> steps, String reason, Map<String, String> notes) {
++        return new AgentRun(id, goal.value(), RunStatus.FAILED, steps, null, reason, notes);
+     }
+ }
+diff --color -ruN -x build -x .gradle /tmp/tmp.sZVtsE162L/agent-core/src/main/java/dev/agente/core/engine/AgentContext.java /tmp/tmp.rSTxaHe2Qv/agent-core/src/main/java/dev/agente/core/engine/AgentContext.java
+--- /tmp/tmp.sZVtsE162L/agent-core/src/main/java/dev/agente/core/engine/AgentContext.java	2026-10-05 12:01:48.000000000 -0300
++++ /tmp/tmp.rSTxaHe2Qv/agent-core/src/main/java/dev/agente/core/engine/AgentContext.java	2026-10-05 13:04:22.914920655 -0300
+@@ -5,11 +5,18 @@
+ import dev.agente.core.port.Tool;
+ 
+ import java.util.List;
++import java.util.Map;
++import java.util.TreeMap;
+ 
+-public record AgentContext(Goal goal, List<Tool> tools, List<Step> history) {
++public record AgentContext(Goal goal, List<Tool> tools, List<Step> history, Map<String, String> notes) {
+ 
+     public AgentContext {
+         tools = List.copyOf(tools);
+         history = List.copyOf(history);
++        notes = java.util.Collections.unmodifiableMap(new TreeMap<>(notes));
++    }
++
++    public AgentContext(Goal goal, List<Tool> tools, List<Step> history) {
++        this(goal, tools, history, Map.of());
+     }
+ }
+diff --color -ruN -x build -x .gradle /tmp/tmp.sZVtsE162L/agent-core/src/main/java/dev/agente/core/engine/AgentEngine.java /tmp/tmp.rSTxaHe2Qv/agent-core/src/main/java/dev/agente/core/engine/AgentEngine.java
+--- /tmp/tmp.sZVtsE162L/agent-core/src/main/java/dev/agente/core/engine/AgentEngine.java	2026-10-05 12:01:48.000000000 -0300
++++ /tmp/tmp.rSTxaHe2Qv/agent-core/src/main/java/dev/agente/core/engine/AgentEngine.java	2026-10-05 13:04:22.928597572 -0300
+@@ -10,6 +10,9 @@
+ 
+ import java.util.ArrayList;
+ import java.util.List;
++import java.util.Map;
++import java.util.TreeMap;
++import dev.agente.core.port.RunScopedTool;
+ 
+ public final class AgentEngine {
+ 
+@@ -24,44 +27,49 @@
+     }
+ 
+     public AgentRun run(String runId, Goal goal) {
++        return run(runId, goal, policy.maxSteps());
++    }
++
++    public AgentRun run(String runId, Goal goal, int maxSteps) {
+         List<Step> history = new ArrayList<>();
++        Map<String, String> notes = new TreeMap<>();
+         int errors = 0;
+ 
+-        while (history.size() < policy.maxSteps()) {
++        while (history.size() < maxSteps) {
+             Decision decision;
+             try {
+-                decision = brain.decide(new AgentContext(goal, tools.all(), history));
++                decision = brain.decide(new AgentContext(goal, tools.all(), history, notes));
+             } catch (RuntimeException e) {
+-                return AgentRun.failed(runId, goal, history, "brain_error: " + e.getMessage());
++                return AgentRun.failed(runId, goal, history, "brain_error: " + e.getMessage(), notes);
+             }
+             if (decision == null) {
+-                return AgentRun.failed(runId, goal, history, "brain_error: null_decision");
++                return AgentRun.failed(runId, goal, history, "brain_error: null_decision", notes);
+             }
+ 
+             Step step;
+             if (decision instanceof Decision.Finish finish) {
+-                return AgentRun.succeeded(runId, goal, history, finish.answer());
++                return AgentRun.succeeded(runId, goal, history, finish.answer(), notes);
+             }
+ 
+             Decision.UseTool useTool = (Decision.UseTool) decision;
+-            step = execute(useTool, history.size() + 1);
++            step = execute(useTool, history.size() + 1, notes);
+             history.add(step);
+             errors = step.ok() ? 0 : errors + 1;
+             if (errors >= policy.maxConsecutiveErrors()) {
+-                return AgentRun.failed(runId, goal, history, "too_many_errors");
++                return AgentRun.failed(runId, goal, history, "too_many_errors", notes);
+             }
+         }
+ 
+-        return AgentRun.failed(runId, goal, history, "max_steps_exceeded");
++        return AgentRun.failed(runId, goal, history, "max_steps_exceeded", notes);
+     }
+ 
+-    private Step execute(Decision.UseTool useTool, int index) {
++    private Step execute(Decision.UseTool useTool, int index, Map<String, String> notes) {
+         Tool tool = tools.find(useTool.tool()).orElse(null);
+         if (tool == null) {
+             return new Step(index, useTool.tool(), useTool.args(), "unknown_tool: " + useTool.tool(), false);
+         }
+         try {
+-            return new Step(index, useTool.tool(), useTool.args(), tool.execute(useTool.args()), true);
++            return new Step(index, useTool.tool(), useTool.args(), (tool instanceof RunScopedTool scoped ? scoped.execute(useTool.args(), notes) : tool.execute(useTool.args())), true);
+         } catch (RuntimeException e) {
+             return new Step(index, useTool.tool(), useTool.args(), "tool_error: " + e.getMessage(), false);
+         }
+diff --color -ruN -x build -x .gradle /tmp/tmp.sZVtsE162L/agent-core/src/main/java/dev/agente/core/port/RunRepository.java /tmp/tmp.rSTxaHe2Qv/agent-core/src/main/java/dev/agente/core/port/RunRepository.java
+--- /tmp/tmp.sZVtsE162L/agent-core/src/main/java/dev/agente/core/port/RunRepository.java	2026-10-05 12:01:48.000000000 -0300
++++ /tmp/tmp.rSTxaHe2Qv/agent-core/src/main/java/dev/agente/core/port/RunRepository.java	2026-10-05 13:04:22.916920653 -0300
+@@ -2,6 +2,7 @@
+ 
+ import dev.agente.core.domain.AgentRun;
+ 
++import java.util.List;
+ import java.util.Optional;
+ 
+ public interface RunRepository {
+@@ -9,4 +10,9 @@
+     void save(AgentRun run);
+ 
+     Optional<AgentRun> findById(String id);
++
++    /** Do mais recente para o mais antigo. */
++    default List<AgentRun> findAll() {
++        return List.of();
++    }
+ }
+diff --color -ruN -x build -x .gradle /tmp/tmp.sZVtsE162L/agent-core/src/main/java/dev/agente/core/port/RunScopedTool.java /tmp/tmp.rSTxaHe2Qv/agent-core/src/main/java/dev/agente/core/port/RunScopedTool.java
+--- /tmp/tmp.sZVtsE162L/agent-core/src/main/java/dev/agente/core/port/RunScopedTool.java	1969-12-31 21:00:00.000000000 -0300
++++ /tmp/tmp.rSTxaHe2Qv/agent-core/src/main/java/dev/agente/core/port/RunScopedTool.java	2026-10-05 13:04:22.915920654 -0300
+@@ -0,0 +1,8 @@
++package dev.agente.core.port;
++
++import java.util.Map;
++
++/** Ferramenta que lê/escreve o estado do run (notas). */
++public interface RunScopedTool extends Tool {
++    String execute(Map<String, String> args, Map<String, String> notes);
++}
+diff --color -ruN -x build -x .gradle /tmp/tmp.sZVtsE162L/agent-spring-ai/src/main/java/dev/agente/springai/PromptFactory.java /tmp/tmp.rSTxaHe2Qv/agent-spring-ai/src/main/java/dev/agente/springai/PromptFactory.java
+--- /tmp/tmp.sZVtsE162L/agent-spring-ai/src/main/java/dev/agente/springai/PromptFactory.java	2026-10-05 12:01:48.000000000 -0300
++++ /tmp/tmp.rSTxaHe2Qv/agent-spring-ai/src/main/java/dev/agente/springai/PromptFactory.java	2026-10-05 13:04:22.928693522 -0300
+@@ -5,6 +5,8 @@
+ import dev.agente.core.port.Tool;
+ 
+ import java.util.List;
++import java.util.Map;
++import java.util.TreeMap;
+ 
+ public final class PromptFactory {
+ 
+@@ -24,6 +26,16 @@
+         return sb.toString();
+     }
+ 
++    public static String user(Goal goal, List<Step> history, Map<String, String> notes) {
++        StringBuilder sb = new StringBuilder(user(goal, history));
++        if (notes.isEmpty()) {
++            return sb.append("Notas: (vazio)\n").toString();
++        }
++        sb.append("Notas:\n");
++        new TreeMap<>(notes).forEach((k, v) -> sb.append("- ").append(k).append(" = ").append(v).append('\n'));
++        return sb.toString();
++    }
++
+     public static String user(Goal goal, List<Step> history) {
+         StringBuilder sb = new StringBuilder();
+         sb.append("Objetivo: ").append(goal.value()).append('\n');
+diff --color -ruN -x build -x .gradle /tmp/tmp.sZVtsE162L/agent-spring-ai/src/main/java/dev/agente/springai/SpringAiBrain.java /tmp/tmp.rSTxaHe2Qv/agent-spring-ai/src/main/java/dev/agente/springai/SpringAiBrain.java
+--- /tmp/tmp.sZVtsE162L/agent-spring-ai/src/main/java/dev/agente/springai/SpringAiBrain.java	2026-10-05 12:01:48.000000000 -0300
++++ /tmp/tmp.rSTxaHe2Qv/agent-spring-ai/src/main/java/dev/agente/springai/SpringAiBrain.java	2026-10-05 13:04:22.928728452 -0300
+@@ -18,7 +18,7 @@
+     public Decision decide(AgentContext ctx) {
+         String raw = client.prompt()
+                 .system(PromptFactory.system(ctx.tools()))
+-                .user(PromptFactory.user(ctx.goal(), ctx.history()))
++                .user(PromptFactory.user(ctx.goal(), ctx.history(), ctx.notes()))
+                 .call()
+                 .content();
+         return DecisionParser.parse(raw);

@@ -1,0 +1,8 @@
+{
+  "description": "API TS com 2 endpoints, 4 tarefas (Node 24 TS nativo, sem deps de runtime)",
+  "setup": ["pnpm install --frozen-lockfile --prefer-offline"],
+  "protect": ["package.json", "tsconfig.json", "pnpm-lock.yaml"],
+  "timeout": 1800,
+  "verify_cmd": "node --test acceptance/*.test.ts",
+  "baseline": {"model": "llama-cpp/qwen3.8-gsq-s", "seconds": 135, "acceptance": "6/6"}
+}

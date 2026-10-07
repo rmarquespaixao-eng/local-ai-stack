@@ -1,0 +1,7 @@
+{
+  "description": "PLANEJAMENTO: modelo lê FEATURE.md + código e escreve SPEC.md/TASKS.md; um executor implementa; aceite oculto julga o comportamento (8 testes HTTP)",
+  "setup": ["pnpm install --frozen-lockfile --prefer-offline"],
+  "protect": ["package.json", "tsconfig.json", "pnpm-lock.yaml", "FEATURE.md"],
+  "timeout": 1800,
+  "verify_cmd": "node --test acceptance/*.test.ts"
+}

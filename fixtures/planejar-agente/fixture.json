@@ -1,0 +1,7 @@
+{
+  "description": "PLANEJAMENTO (difícil): agente Spring AI v1 → FEATURE.md v2 (notas por run, maxSteps por run, GET /runs) atravessando core/spring-ai/app com compatibilidade de API; oráculo = 21 testes v1 (regressão) + 9 da feature",
+  "setup": [],
+  "protect": ["*.gradle.kts", "gradle/*", "gradlew", "gradlew.bat", "FEATURE.md"],
+  "timeout": 3600,
+  "verify_cmd": "./gradlew test --console=plain -q --tests acceptance.*"
+}

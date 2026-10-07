@@ -1,0 +1,8 @@
+{
+  "description": "Agente autônomo Spring AI: Gradle 3 módulos, Boot 4.0.8, Spring AI 2.0.1, Jackson 3, -Werror, 8 tarefas",
+  "setup": [],
+  "protect": ["*.gradle.kts", "gradle/*", "gradlew", "gradlew.bat"],
+  "timeout": 3600,
+  "verify_cmd": "./gradlew test --console=plain -q --tests acceptance.*",
+  "baseline": {"model": "llama-cpp/qwen3.8-gsq-s", "seconds": 770, "acceptance": "22/22"}
+}

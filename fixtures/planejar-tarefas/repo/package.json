@@ -1,0 +1,17 @@
+{
+  "name": "api-tarefas-local",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "start": "node src/main.ts",
+    "test": "node --test \"src/**/*.test.ts\"",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.1",
+    "typescript": "^5.9.3"
+  }
+}

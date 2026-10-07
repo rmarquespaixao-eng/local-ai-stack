@@ -1,0 +1,13 @@
+spring:
+  ai:
+    openai:
+      base-url: http://127.0.0.1:8082/v1
+      api-key: local
+      chat:
+        options:
+          model: qwen3.8-gsq-s
+          temperature: 0.2
+
+agent:
+  max-steps: 8
+  max-consecutive-errors: 2
