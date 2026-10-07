@@ -295,6 +295,12 @@ cd /tmp/local-ai-stack
 cd /tmp/meu-teste && echo '{"model":"llama-cpp/strata-flash-next"}' > opencode.json
 echo opencode.json >> .git/info/exclude
 pnpm install --frozen-lockfile
+# config isolado (cópia do seu, com os MCPs desligados): sem isso, um MCP remoto lento
+# trava a inicialização e você acha que o culpa é do modelo
+mkdir -p /tmp/xdg-teste/opencode
+cp ~/.config/opencode/opencode.json /tmp/xdg-teste/opencode/
+python3 -c "import json,pathlib;p=pathlib.Path('/tmp/xdg-teste/opencode/opencode.json');d=json.loads(p.read_text());d['mcp']={};p.write_text(json.dumps(d,indent=2,ensure_ascii=False))"
+
 XDG_CONFIG_HOME=/tmp/xdg-teste opencode run --standalone --auto --model 'llama-cpp/strata-flash-next#off' \
   "$(cat /tmp/local-ai-stack/fixtures/PROMPT-EXECUTOR.txt)"
 cd /tmp/local-ai-stack && ./fixtures/verify.sh api-tarefas /tmp/meu-teste
