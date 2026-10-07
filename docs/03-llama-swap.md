@@ -6,8 +6,8 @@ backend certo quando alguém pede, descarrega quando fica ocioso.
 
 - Projeto: https://github.com/mostlygeek/llama-swap (MIT, binário único em Go)
 - Versão que usamos: **v260** (`fcefa7b`)
-- Por que não um `llama-server` fixo: com 16 GB de VRAM só cabe **um** modelo por vez. Sem essa troca
-  automática, cada troca de modelo viraria "parar processo, editar script, recomeçar".
+- Por que não um `llama-server` fixo: com 16 GB de VRAM só cabe **um** modelo por vez. Sem esse roteamento,
+  trocar de modelo seria "parar processo, editar script, recomeçar" a cada vez.
 
 ## 3.1 Instalar
 
