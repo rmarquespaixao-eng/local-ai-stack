@@ -1,0 +1,12 @@
+# artefatos locais
+*.log
+*.bak-*
+__pycache__/
+*.pyc
+.DS_Store
+
+# nunca versionar modelos ou sessões
+*.gguf
+*.bin
+runs/
+.vervenv/
