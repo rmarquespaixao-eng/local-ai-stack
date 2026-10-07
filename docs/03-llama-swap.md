@@ -5,7 +5,7 @@ Um servidor OpenAI-compatível que **troca o modelo sob demanda**: você expõe 
 backend certo quando alguém pede, descarrega quando fica ocioso.
 
 - Projeto: https://github.com/mostlygeek/llama-swap (MIT, binário único em Go)
-- Versão que usamos: **v260** (`fcefa7b`)
+- Versão que uso: **v260** (`fcefa7b`)
 - Por que não um `llama-server` fixo: com 16 GB de VRAM só cabe **um** modelo por vez. Sem esse roteamento,
   trocar de modelo seria "parar processo, editar script, recomeçar" a cada vez.
 
@@ -76,7 +76,7 @@ models:
     cmd: ${vbin} --model ${M}/qwen3.8-27b/... --port ${PORT} -c 128000 ${mtp2} ${cacheopt} ...
 ```
 
-Macros que usamos e **por que existem** (todos no `config/llama-swap.yaml`):
+Macros que uso e **por que existem** (todos no `config/llama-swap.yaml`):
 
 | Macro | Conteúdo | Motivo |
 |---|---|---|
@@ -91,17 +91,17 @@ Macros que usamos e **por que existem** (todos no `config/llama-swap.yaml`):
 
 ## 3.4 Os knobs que realmente importam
 
-| Knob | O que faz | O que aprendemos |
+| Knob | O que faz | O que aprendi |
 |---|---|---|
 | `--parallel` / `parallel` | quantas sessões o backend atende ao mesmo tempo | no llama.cpp o `-c` é **dividido** entre os slots; no Strata cada slot leva o contexto inteiro — ver [docs/04 §4.6](04-strata.md) |
 | `ttl: 600` | descarrega após 600 s ocioso | devolve ~40 GB de RAM; sem isso, o segundo modelo grande não entra |
-| `ttl: -1` / `ttl: 0` | `-1` não significa "nunca descarrega": significa *herdar o TTL global*. O "nunca" é o valor **0**. Como não definimos `ttl` global (e o global padrão é 0), `-1` cai em "nunca" por acaso — se você poner um `ttl:` global, todos os perfis `-1` passam a descarregar | deixar o principal em `ttl: 0` explícito se você mexer no global |
+| `ttl: -1` / `ttl: 0` | `-1` não significa "nunca descarrega": significa *herdar o TTL global*. O "nunca" é o valor **0**. Como não defini `ttl` global (e o global padrão é 0), `-1` cai em "nunca" por acaso — se você poner um `ttl:` global, todos os perfis `-1` passam a descarregar | deixar o principal em `ttl: 0` explícito se você mexer no global |
 | `healthCheckTimeout` | espera o backend responder no health check | 600 s para MoE; valor baixo faz o llama-swap desistir do load no meio e você vê "failed to start" |
-| `checkEndpoint: none` | não faz health check | use em perfil "proxy" (aponta para um servidor já rodando); o llama-swap **não** tem perfil proxy puro, então a gente usa `cmd: sleep infinity` |
+| `checkEndpoint: none` | não faz health check | use em perfil "proxy" (aponta para um servidor já rodando); o llama-swap **não** tem perfil proxy puro, então uso `cmd: sleep infinity` |
 | `-watch-config` | recarrega ao salvar | ótimo, e inconveniente durante um teste (interrompe o stream em uso) |
 | `filterGguf: false` | não tenta ler metadados do GGUF | necessário quando o arquivo ainda não existe ou o backend não conhece a arquitetura |
 
-## 3.5 Endpoints que usamos no dia a dia
+## 3.5 Endpoints que uso no dia a dia
 
 ```bash
 curl -s localhost:8082/v1/models | python3 -m json.tool   # o que está publicado
@@ -111,14 +111,14 @@ curl -s localhost:8082/unload                             # descarrega tudo devo
 curl -s localhost:10001/props | head                      # n_ctx real, slots, KV — conferira o que o modelo achou
 ```
 
-`/props` é o melhor detector de autoengano do setup: mostra o `n_ctx` efetivo. Foi assim que descobrimos
+`/props` é o melhor detector de autoengano do setup: mostra o `n_ctx` efetivo. Foi assim que descobri
 que `--parallel 2` divide o `-c` (pedia 128k, tinha 64k por slot).
 
 Dois comportamentos que parecem bug e são o desenho:
 
 - **Reiniciar o llama-swap restaura o modelo que estava carregado.** Se você descarregou de propósito e
   reinicia o serviço, ele tenta subir tudo outra vez — descarregue antes de reiniciar.
-- **Um perfil "pinado" volta do unload sozinho se houver cliente conectado.** Nosso principal voltava a
+- **Um perfil "pinado" volta do unload sozinho se houver cliente conectado.** Meu principal voltava a
   cada `/unload` porque uma aplicação Java e o Chrome mantinham conexões em `:8082`: o llama-swap se
   recupera da desconexão re-emindo o stream, e isso dispara o load. Diagnóstico: `ss -tnp | grep 8082`
   antes de concluir que o unload "não funcionou". 
@@ -136,6 +136,6 @@ Dois comportamentos que parecem bug e são o desenho:
 6. Teste **tool calling** (uma chamada com `tools`), não só texto — muito modelo bonito reprovou aí.
 7. Rode uma prova de agente ([docs/08](08-avaliacao.md)) antes de promover o modelo a principal.
 
-> O `config/llama-swap.yaml` publicado é uma cópia sanitizada do nosso config vivo: mesmos macros e
+> O `config/llama-swap.yaml` publicado é uma cópia sanitizada do meu config vivo: mesmos macros e
 > os 17 perfis ativos, com os caminhos reais trocados por `/home/YOU` e os perfis comentados
 > (reprovados) de fora — o histórico deles está em [docs/02](02-modelos.md).

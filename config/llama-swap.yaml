@@ -1,4 +1,4 @@
-# Config de referência do llama-swap (v260) — os perfis que usamos e o que medimos neles.
+# Config de referência do llama-swap (v260) — os perfis que uso e o que medi em cada um.
 #
 # ANTES DE USAR
 #   Troque /home/YOU pelo seu usuário (nos macros e nos cmds). Caminhos não aceitam `~`:

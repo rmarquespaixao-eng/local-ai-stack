@@ -1,8 +1,8 @@
 # 1. A máquina, o orçamento de memória e as regras de ouro
 
-Todo número deste repo sai de uma máquina específica. Publiquei ela aqui inteira porque a
-configuração **depende** dela: o mesmo GGUF com a mesma flag vai bem num rig e congela o desktop
-num outro. Primeiro leia a sua, depois copie a nossa.
+Todo número deste repo saiu de uma máquina específica. Deixo a descrição dela inteira aqui porque a
+configuração **depende** dela: o mesmo GGUF com a mesma flag vai bem num rig e trava o desktop noutro.
+Primeiro leia a sua; depois copie a minha.
 
 ## 1.1 O rig de referência
 
@@ -21,16 +21,16 @@ num outro. Primeiro leia a sua, depois copie a nossa.
 
 **Arquitetura relevante:** a GPU é compartilhada com o desktop. Isso corta a metade o ganho que
 você vê em benchmarks headless (regra nº 7 da comunidade MTP) e é a causa direta dos congelamentos
-de tela que quase nos fez desistir da stack.
+de tela que quase me fez desistir da stack.
 
-## 1.2 Orçamento: como decidimos o que cabe
+## 1.2 Orçamento: como decidi o que cabe
 
-A conta que fizemos em cada perfil, sempre com folga:
+A conta que fiz em cada perfil, sempre com folga:
 
 ```
 VRAM total útil          ~ 15.920 MiB
 - desktop ocioso         ~   500 MiB
-- margem que deixamos    ~ 3.072 MiB   (abaixo disso → page allocation failure)
+- margem que deixo    ~ 3.072 MiB   (abaixo disso → page allocation failure)
 = sobra para pesos+KV    ~ 12.350 MiB
 ```
 
@@ -71,13 +71,13 @@ Sinais de que o orçamento passou do limite (todos já apareceram aqui):
 | Tela congela 2–10 s sob carga | `amdgpu_bo_pin` sem VRAM; confira `journalctl -k \| grep -i 'page allocation failure'` |
 | Geração a 1–2 t/s, sem nenhum erro | pesos sendo relidos do NVMe a cada token (modelo > RAM) |
 | Congelamento de vários minutos no primeiro load | normal em MoE grande: o motor está lendo 35–55 GB para a RAM |
-| PC reinicia sozinho sob carga de IA | pode ser CPU/estabilização, não a GPU (no nosso caso: MCE não corrigido num núcleo, ver [docs/07](07-problemas.md)) |
+| PC reinicia sozinho sob carga de IA | pode ser CPU/estabilização, não a GPU (no meu caso: MCE não corrigido num núcleo, ver [docs/07](07-problemas.md)) |
 
 ## 1.4 As regras de ouro
 
 1. **Deixe ≥ 2–3 GB de VRAM livres.**
    llama.cpp: `--fit on --fit-target 3072` · Strata: `--vram-reserve-mib 3072`.
-   Com `--fit-target 1024` deixamos a placa em 15,2/16,3 GB e o compositor/Chrome passaram a falhar
+   Com `--fit-target 1024` deixei a placa em 15,2/16,3 GB e o compositor/Chrome passaram a falhar
    alocação. O Strata no padrão deixava ~700 MiB e a máquina parava de responder.
 2. **Um motor grande por vez.** O principal ocupa ~46–50 GB de RAM, e dois engines Strata juntos não
    cabem aqui (as arenas de experts são ~33 GiB cada, contra 54 GB). O `ttl: 600` do llama-swap devolve a
@@ -96,7 +96,7 @@ Sinais de que o orçamento passou do limite (todos já apareceram aqui):
    o perfil com `# [REPROVADO <data> — <motivo>]`. Daqui a 3 meses você vai querer saber por que
    aquilo saiu.
 
-## 1.5 Layout de diretórios que usamos
+## 1.5 Layout de diretórios que uso
 
 Tudo parametrizável; só evite o disco do sistema para os pesos (leitura sequencial de 30–80 GB).
 

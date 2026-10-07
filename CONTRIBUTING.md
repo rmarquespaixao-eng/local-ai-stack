@@ -1,6 +1,6 @@
 # Contribuindo
 
-Este repo é o registro da nossa configuração — escrito para ser útil a quem tem hardware parecido, não
+Este repo é o registro da minha configuração — escrito para ser útil a quem tem hardware parecido, não
 como especificação universal. Mudanças são bem-vindas com um critério: número medido em vez de opinião.
 
 ## O que ajuda

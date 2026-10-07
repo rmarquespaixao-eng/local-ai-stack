@@ -13,7 +13,7 @@ O que ele faz:
   - se a fonte estiver fora do ar, mantém a lista atual (não apaga tudo por um timeout);
   - só reescreve se algo mudou, com backup `.bak-sync-latest` e escrita atômica.
 
-Este é o nosso script reduzido à parte local: a versão que usamos em produção também sincroniza
+Esta é a versão reduzida, só com a parte local, do script que rodo em produção (que também sincroniza)
 provedores de nuvem, e publicar isso aqui incentivaria gente a meter `apiKey` dentro de um config
 versionado. Se você precisa disso, use variáveis de ambiente no config do cliente.
 """

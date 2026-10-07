@@ -3,7 +3,7 @@
 Passo a passo para montar esta stack numa máquina Linux (AMD ou NVIDIA) com **12–16 GB de VRAM e
 48–64 GB de RAM**. Cada passo diz o comando, o que você deve ver se deu certo, e o link do detalhe.
 
-Tempo real da nossa máquina: ~3 h (1 h de download de pesos + 20 min de compilação do engine + o
+Tempo real da minha máquina: ~3 h (1 h de download de pesos + 20 min de compilação do engine + o
 restante). Disco: ~140 GB (70 GB por quant do Flash-Next, ~6 GB do MTP, ~10 GB do ROCm quando o setup
 baixa, 12 GB do 27B).
 
@@ -173,7 +173,7 @@ curl -sL -o llama-swap.tgz "$ASSET" && tar xzf llama-swap.tgz && rm llama-swap.t
 #   version: v262 (079c35a), built at 2026-10-03T06:33:47Z     ← o tar traz o binário na raiz
 ```
 
-Nós rodamos a v260; a v262 é a mais recente e não mudou nada que este guia use (`-validate`,
+Eu rodo a v260; a v262 é a mais recente e não mudou nada que este guia use (`-validate`,
 `-watch-config`, macros, `ttl`). Para ARM troque o filtro por `linux_arm64`.
 
 Instale o config deste repo (ajustado no passo 1) e valide **antes** de subir serviço:
@@ -218,9 +218,9 @@ print(r.fields['tokenizer.chat_template'].contents())" > embutido.jinja
 diff -u embutido.jinja ~/llm/templates/qwen3.8-template.jinja | head -30
 ```
 
-No Qwen3.8-27B que usamos, o `diff` mostra as duas mudanças de comportamento que justificam o template
-próprio: o embutido tem default `xhigh` (o nosso, `low`) e o ramo de instruções de cada esforço. As
-demais linhas da diferença são o caminho de visão, que não usamos no perfil de texto.
+No Qwen3.8-27B que uso, o `diff` mostra as duas mudanças que justificam o template
+próprio: o embutido tem default `xhigh` (o meu, `low`) e o ramo de instruções de cada esforço. As
+demais linhas da diferença são o caminho de visão, que não uso no perfil de texto.
 
 ---
 
@@ -228,7 +228,7 @@ demais linhas da diferença são o caminho de visão, que não usamos no perfil 
 
 ```bash
 curl -fsSL https://opencode.ai/install | bash      # ou: npm install -g opencode-ai
-opencode --version                                  # nosso v2.0.23; v2 é o que os configs assumem
+opencode --version                                  # meu v2.0.23; v2 é o que os configs assumem
 ```
 
 Cole o provider deste repo no `~/.config/opencode/opencode.json`
@@ -358,7 +358,7 @@ foram medidos em `f1cee99` (llama.cpp) e no engine 0.1.39 do Strata; em versão 
 
 ## 11. E no Windows?
 
-Não medimos esta stack inteira em Windows, então não prometo números. O que muda, segundo o upstream de
+Não medi esta stack inteira em Windows, então não prometo números. O que muda, segundo o upstream de
 cada peça:
 
 | Peça | No Windows |

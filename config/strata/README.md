@@ -9,9 +9,9 @@
 | `strata-iq2_xs-256k-parallel2.json` | (exemplo, sem perfil no config publicado) | mesmo 256k com `"parallel": 2`: duas conversas de 256k ao mesmo tempo — passo a passo em [docs/04 §4.6](../../docs/04-strata.md) |
 | `strata-swap.sh` | todos os `strata-*` | wrapper que encerra o grupo ao receber SIGTERM |
 
-**Não publicamos** os JSONs dos perfis `strata-swift-*` e `strata-flash-next-iq3xxs` do
-`config/llama-swap.yaml`: o Swift tem um `--ple-gguf` que suspeitamos estar apontando para o shard
-errado (documentado em [docs/04](../../docs/04-strata.md#47-o-que-ainda-não-sabemos)) e o IQ3_XXS não
+**Não publico** os JSONs dos perfis `strata-swift-*` e `strata-flash-next-iq3xxs` do
+`config/llama-swap.yaml`: o Swift tem um `--ple-gguf` que suspeito estar apontando para o shard
+errado (documentado em [docs/04](../../docs/04-strata.md#47-o-que-ainda-não-sei)) e o IQ3_XXS não
 tem veredito de qualidade medido aqui. Se for usar, copie o `strata-iq2_xs.json` e troque `--pack`,
 `--native`, `--ple-gguf`, `tokenizer`, `model_name` e `log` — lembrando que no GSQ-RCO **original/Swift
 o PLE é o shard 2** (shard 1 é só para o OrcaRouter).

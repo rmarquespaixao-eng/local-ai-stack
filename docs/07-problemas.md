@@ -1,7 +1,7 @@
-# 7. Problemas e soluções (o que encontramos, com causa e correção)
+# 7. Problemas e soluções (os 41 casos que enfrentei, com causa e correção)
 
 Se algo está quebrado, procure aqui antes de reiniciar tudo. Organizado por categoria; cada linha é um
-caso que aconteceu nesta stack, com a causa e o que resolvemos.
+caso que aconteceu nesta stack, com a causa e o que resolvi.
 
 ## 7.1 VRAM e desktop
 
@@ -36,7 +36,7 @@ caso que aconteceu nesta stack, com a causa e o que resolvemos.
 | `--fit` aborta com `INDEXER_TOPK` na CPU | fork com MTP + `--fit`: o índice cai em CPU e o build não sabe | fixar `-ngl 999 --n-cpu-moe N` nesse fork (`--fit off`) |
 | HTTP 500 no Ministral | o template oficial **exige** alternância user/assistant | `--chat-template-file` com uma versão relaxada (`.jinja` próprio) |
 | Seletor de raciocínio não faz nada | `--reasoning on` no cmd fixa `enable_thinking=true` e ignora o `reasoning_effort`; ou `--reasoning off` no perfil instruct | deixar o template decidir: tirar o flag fixo e validar o Jinja |
-| Template custom "engolia" effort sem erro | o template embutido no GGUF tem `raise_exception` para effort inválido; o nosso tinha perdido o ramo `medium` | validar o template renderizando com Jinja2 e restaurar a validação |
+| Template custom "engolia" effort sem erro | o template embutido no GGUF tem `raise_exception` para effort inválido; o meu tinha perdido o ramo `medium` | validar o template renderizando com Jinja2 e restaurar a validação |
 | "O modelo Q4_K_XL só faz 1,7 t/s" | medi o LM Studio, não o llama.cpp (mesmo arquivo: **34 t/s**) | vale conferir o backend/executor antes de comparar números |
 
 ## 7.4 llama-swap
@@ -61,12 +61,12 @@ caso que aconteceu nesta stack, com a causa e o que resolvemos.
 | Sessão lenta e com contexto poluído | 31 tools de um MCP de benchmark no contexto | desligar MCP que não é do caso; 93% das chamadas são meio-de-loop, cada tool custa caro |
 | TUI congela depois de mexer no config | `opencode service restart` com TUI aberta | fechar a TUI antes de reiniciar o serviço |
 | `opencode -m` não existe | na TUI v2 não há `-m` | `opencode.json` de projeto + `.git/info/exclude`, ou `/models` |
-| `exceed_context_size_error` no meio da sessão | llama.cpp **não tem** janela deslizante: passou do limite, erro | `limit.context` = `-c` real; o OpenCode compacta antes (a ~118k do nosso 128k), mas o erro ainda aparece se o cliente não compactar |
+| `exceed_context_size_error` no meio da sessão | llama.cpp **não tem** janela deslizante: passou do limite, erro | `limit.context` = `-c` real; o OpenCode compacta antes (a ~118k do meu 128k), mas o erro ainda aparece se o cliente não compactar |
 | `opencode mcp list` vazio | bug do v2 (mente) | conferir o `opencode.json` e `/api/config`, não o `mcp list` |
 | Resposta do agente cortada no meio ("Output token limit reached") | `limit.output` do cliente, **não** é contexto nem compactação | subir para 32768 nos perfis de trabalho/planejamento ([docs/05](05-opencode.md)) |
 | Integração ACP na IDE: "no session table" | o registry da JetBrains fixa o **OpenCode v1.18** contra o `opencode.db` do **v2** (schema `session_v2`) | registrar o binário v2 como agente custom (`acp.json`) e reiniciar a IDE |
 
-## 7.6 Método de medição (os erros que quase nos fizeram decidir errado)
+## 7.6 Método de medição (os erros que quase me fizeram decidir errado)
 
 | Quase conclusão errada | O que estava errado |
 |---|---|
@@ -82,7 +82,7 @@ caso que aconteceu nesta stack, com a causa e o que resolvemos.
 | Sintoma | Diagnóstico | Ação |
 |---|---|---|
 | PC reinicia sozinho sob carga; o kernel loga MCE não corrigido no boot seguinte | **MC1 (Instruction Fetch Unit, L1, Poison) no núcleo 6**, mesma assinatura em dois eventos → núcleo instável (provável Curve Optimizer/PBO agressivo) | BIOS: Curve Optimizer do núcleo (ou todos) = 0 e/ou PBO off; validar com `journalctl -b -k \| grep -c "Machine check"` após horas de carga |
-| Banda de RAM abaixo do esperado | 4 pentes mistos, canais 24/32 **assimétricos** | parear os pentes (2×32 + 2×16 no nosso plano); medir banda com 2–4 threads (com mais threads o número **cai**) |
+| Banda de RAM abaixo do esperado | 4 pentes mistos, canais 24/32 **assimétricos** | parear os pentes (2×32 + 2×16 no meu plano); medir banda com 2–4 threads (com mais threads o número **cai**) |
 | Congelamento em VM/PCIe pass-through | driver/KFD + reclaim de host pages suspendendo filas | variáveis documentadas no upstream do Strata (`HSA_USERPTR_FOR_PAGED_MEM=0`, `GPU_PINNED_MIN_XFER_SIZE=1048576`) — uma por vez, com tempo medido |
 
 > **Regra de ouro de diagnóstico:** não atribua ao modelo o que pode ser I/O, memória, config de motor ou

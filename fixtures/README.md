@@ -1,6 +1,6 @@
 # Os 4 fixtures de teste
 
-Os repositórios de prova que usamos para decidir o que entra na stack. Cada fixture traz **o repo
+Os repositórios de prova que uso para decidir o que entra na stack. Cada fixture traz **o repo
 base** (o que o modelo recebe), **o aceite oculto** (o que decide o veredito), o `fixture.json`
 (configuração) e os prompts.
 
@@ -23,7 +23,7 @@ fixtures/<nome>/
   referencia.patch      # só no planejar-agente: solução known-good (valida o oráculo)
 ```
 
-## Rodar sem o nosso harness
+## Rodar sem o meu harness
 
 ```bash
 FX=api-tarefas
@@ -43,21 +43,21 @@ opencode run --standalone --auto --model 'llama-cpp/strata-flash-next#off' \
 ```
 
 O `verify.sh` também avisa se o modelo tocou em algum arquivo do `protect` do `fixture.json` — o que
-invalida o run (testamos isso: modelos reprovados costumavam consertar o `tsconfig` em vez do código).
+invalida o run (testei isso: modelos reprovados costumavam consertar o `tsconfig` em vez do código).
 
 ## O que faz o teste valer alguma coisa
 
 1. **Aceite fora do repo.** Se o modelo vê os testes, ele otimiza para eles e o veredito não significa
-   nada. No nosso fluxo, `acceptance/` só entra na hora de avaliar (e os testes do repo base são
+   nada. No meu fluxo, `acceptance/` só entra na hora de avaliar (e os testes do repo base são
    outros, esses sim visíveis).
 2. **Valide o oráculo antes de confiar no número.** `referencia.patch` (planejar-agente) passa 30/30;
-   o repo base passa 21/30. Se a base tirasse 30/30, o teste não estaria medindo nada — e já pegamos
+   o repo base passa 21/30. Se a base tirasse 30/30, o teste não estaria medindo nada — e já peguei
    um caso assim, em que um teste existente esperava `404` numa rota que a feature mudava.
 3. **Respeite o `protect`.** Mexer em `package.json`, `tsconfig.json` ou nos `*.gradle.kts` é o atalho
    mais comum para "fazer o build passar" sem fazer a tarefa.
 4. **Meça tempo, commits e o aceite.** Um run 8/8 nas tarefas com 17/22 de aceite é PARCIAL. Um run
    aprovado com 45 s de loop em comando de saída vazia é um comportamento que precisa ser registrado.
-5. **Duas rodadas.** Nosso principal passou em 2 de 3 — com n=1 a variância engana fácil.
+5. **Duas rodadas.** Meu principal passou em 2 de 3 — com n=1 a variância engana fácil.
 6. **Não edite o config do llama-swap durante o run.** O reload interrompe o stream e a rodada é
    perdida por motivo que não é do modelo.
 
@@ -86,7 +86,6 @@ implementando a feature.
 
 ## Se você publicar estes fixtures
 
-Eles são nossos depois de publicados: modelos novos que treinaram com dados da internet podem tê-los
-visto. O que ainda funciona é o **padrão** (aceite oculto + `protect` + oráculo validado) — troque os
+Depois de publicados, deixam de ser só meus: modelos novos que treinaram com dados da internet podem tê-los visto. O que ainda funciona é o **padrão** (aceite oculto + `protect` + oráculo validado) — troque os
 nomes de rota, as mensagens de erro e um ou dois casos de borda antes de usar para decidir algo
 importante.

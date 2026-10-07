@@ -2,7 +2,7 @@
 
 Velocidade e benchmark de texto preveem pouco do que importa para agente. Dos 19 modelos que passaram
 por aqui, muitos eram rápidos e 4 fecharam a prova difícil. Esta é a metodologia que
-usamos — e que você pode reproduzir com fixtures seus.
+usei — e que você pode reproduzir com fixtures seus.
 
 ## 8.1 A escada (3 degraus, pare no primeiro "não")
 
@@ -41,7 +41,7 @@ fixtures/<nome>/
 ```
 
 **Validar o oráculo antes de usar:** rode os testes contra a referência (deve dar 100%) e contra o
-repositório base (deve dar perto de 0%). Se a base passa, o teste ainda não está medindo nada. Nos nossos fixtures de
+repositório base (deve dar perto de 0%). Se a base passa, o teste ainda não está medindo nada. Nos meus fixtures de
 planejamento: referência 30/30, base 21/30 — daí o teste ser útil.
 
 Armadilhas que os testes precisam pegar (e pegaram): resposta HTTP errada (404 vs 200), contrato de
@@ -54,7 +54,7 @@ e você acha que o modelo local está trocando de modelo sozinho).
 Sem um vigia, o run pode ter parado às 23h e você só descobre de manhã. Vale ter regras explícitas de
 parada:
 
-| Modo de falha | Critério que usamos | O que significa |
+| Modo de falha | Critério que uso | O que significa |
 |---|---|---|
 | `loop` | 4 chamadas **idênticas** seguidas | sampling agressivo demais, ou greedy em reasoning |
 | `error_loop` | o **mesmo erro** 6× | modelo não consegue autocorrigir; em Java, quase sempre contrato de tipos |
@@ -64,14 +64,14 @@ parada:
 
 E boa parte dos disparos não vem do modelo: MCP remoto travando a inicialização, troca de modelo no
 meio do teste, ou GPU sem folga. Antes de atribuir o resultado ao candidato, confira hardware e
-isolamento ([docs/07](07-problemas.md#76-método-de-medição-os-erros-que-quase-nos-fizeram-decidir-errado)).
+isolamento ([docs/07](07-problemas.md#76-método-de-medição-os-erros-que-quase-me-fizeram-decidir-errado)).
 
 ## 8.4 Isolamento e regras do protocolo
 
 1. **Config isolado por run**: cópia do `opencode.json` com todos os MCPs desligados via
    `XDG_CONFIG_HOME`. Sem isso, um MCP lento contamina o tempo e o veredito.
 2. Evite editar o config do llama-swap durante a bateria (`-watch-config` interrompe o stream em uso).
-3. **Duas rodadas** no mínimo para promover. Nosso principal aprovou 2 de 3.
+3. **Duas rodadas** no mínimo para promover. Meu principal aprovou 2 de 3.
 4. Promova com evidência de agente, não com benchmark de texto: HumanEval não mede o eixo multi-arquivo.
 5. **Roda noturna com parada automática** em sinal de hardware (MCE no journal, timeout de GPU, VRAM
    livre abaixo do mínimo). Sem isso a fila continua de madrugada e os dados da manhã valem pouco.
@@ -80,7 +80,7 @@ isolamento ([docs/07](07-problemas.md#76-método-de-medição-os-erros-que-quase
 
 ## 8.5 O que tem pronto em `fixtures/` — e como fazer os seus
 
-Os quatro que usamos vêm neste repo ([`../fixtures/`](../fixtures/README.md) tem o passo a passo e os
+Os quatro que uso vêm neste repo ([`../fixtures/`](../fixtures/README.md) tem o passo a passo e os
 detalhes de cada um). A receita para montar equivalentes no seu domínio é curta, e o resultado é o que
 importa: um serviço pequeno, build exigente, testes que o modelo não vê.
 
@@ -132,7 +132,7 @@ git log --oneline $(git rev-list --max-parents=0 HEAD)..HEAD   # foi commitando 
 
 O detalhe que importa é o `#off`: um run de execução com raciocínio ligado não é comparável a um sem.
 
-## 8.7 O que medimos e onde ficaram as dúvidas
+## 8.7 O que medi e onde ficaram as dúvidas
 
 - **Aprovados** (executor): strata-flash-next (instruct e thinking), swift-1.5-27b, qwen3.8-gsq-s,
   muse-glimmer-30b (só thinking). Números em [docs/02](02-modelos.md).
@@ -141,4 +141,4 @@ O detalhe que importa é o `#off`: um run de execução com raciocínio ligado n
   do plano; corrigida, 30/30.
 - **Em aberto**: IQ3_XXS no Strata com 54 GB de RAM, Swift Flash-Next como executor (1 teste curto,
   promissor, sem veredito formal), Qwen3.6-35B (parcial), coder-next, Mistral Small 4, Devstral.
-  Não publicamos veredito do que não foi medido.
+  Não publico veredito do que não foi medido.

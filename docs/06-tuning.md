@@ -3,7 +3,7 @@
 A parte que mais gera "por que este modelo está pior que no vídeo?". Na maioria das vezes não é o
 modelo: é sampling, folga de VRAM, ou o contexto que você acha que tem.
 
-## 6.1 Sampling — valores oficiais por família (o que usamos)
+## 6.1 Sampling — valores oficiais por família (o que uso)
 
 Passe todos explícitos. O default do llama.cpp fora do GGUF é `min-p 0.05` / `repeat-penalty 1.1`, que
 não corresponde ao valor de nenhum fornecedor.
@@ -31,7 +31,7 @@ Regras que explicam a tabela:
 - Modelo de reasoning com temperatura baixa (< 0.5) tende a entrar em loop no thinking. Use o valor do
   modo.
 - **Mudou temp, mudou a saída.** Só mexa com um motivo e com A/B.
-- Auditoria que fizemos (2026-10-06): os clientes que usamos **não mandam sampling** — quem
+- Auditoria que fiz (2026-10-06): os clientes que uso **não mandam sampling** — quem
   decide é o perfil. Se o perfil não tem, o motor decide por você (e no Strata isso era greedy).
 
 ## 6.2 MTP / speculative decoding — onde a velocidade mora
@@ -43,7 +43,7 @@ o modelo principal em uma passada. Flag base:
 --spec-type draft-mtp --spec-draft-n-max 2 --parallel 1
 ```
 
-As 7 regras da comunidade (sudoingX/qwen38-mtp, 53 configs coletadas) que nos salvaram de números
+As 7 regras da comunidade (sudoingX/qwen38-mtp, 53 configs coletadas) que me salvaram de números
 errados:
 
 1. `n-max` depende de GPU + workload. Varra 2–4; não adote cego.
@@ -59,12 +59,12 @@ Para RX 9070 XT 16 GB (RDNA4, Vulkan, não faminta de banda), o ótimo medido:
 
 | Knob | Valor | Motivo |
 |---|---|---|
-| `--spec-draft-n-max` | **2** | varremos: n=4 perde (59,8 → 50 t/s) |
+| `--spec-draft-n-max` | **2** | varri: n=4 perde (59,8 → 50 t/s) |
 | `--spec-draft-p-min` | **0** (sem gate) | regra 2; **0.6 é o fallback** só se a aceitação cair < 0.5 (contexto longo de agente) |
 | `--spec-draft-n-min` | 0 | não corta cedo |
 | KV do draft | `-ctkd q8_0 -ctvd q8_0` | poupa VRAM sem custo de qualidade |
 
-Aceitação medida no nosso gsq-s: ~0,64–0,68 com n-max 2. Como ler: `--verbose` no log imprime
+Aceitação medida no meu gsq-s: ~0,64–0,68 com n-max 2. Como ler: `--verbose` no log imprime
 "accepted X / drafts Y".
 
 Ganhos reais medidos aqui: 17,7 → **22,9 t/s** (+29%) no Flash-Next com MTP em fork; 47 → 59,8 t/s no
@@ -72,7 +72,7 @@ Ganhos reais medidos aqui: 17,7 → **22,9 t/s** (+29%) no Flash-Next com MTP em
 
 - `ngram-mod` deu +70% no microbench e 0% no agente real. No bench era reescrever arquivo
   (caso do n-gram); no agente, 115 passos × 6,7 s escrevendo código novo por diff — o n-gram não
-  acerta nada. **Não aplicamos.**
+  acerta nada. **Não aplico.**
 - **`-ub 2048`**: nenhum ganho de prefill no server (~720 t/s) e +0,3–0,6 GiB de VRAM. Descartado.
 
 ## 6.3 Contexto e KV: como achar o máximo real
@@ -85,15 +85,15 @@ llama-fit-params --model arquivo.gguf -fitp on -c 131072 -ctk q8_0 -ngl 99 --bac
 # imprime: pesos | KV | compute por backend, sem inferir. Calibramos ±2% contra rocm-smi real.
 ```
 
-Armadilhas medidas (cada uma nos custou tempo):
+Armadilhas medidas (cada uma me custou tempo):
 
-| Armadilha | O que observamos |
+| Armadilha | O que observo |
 |---|---|
 | `--fit on` vai reduzir meu contexto se não couber | Não: com `-c` explícito, se não couber o llama.cpp aborta. O `--fit` escolhe camadas e só reduz ctx com `-c 0` |
 | `--ctx-checkpoints N` custa VRAM | **Não custa** (medido 0 vs 32: mesma VRAM). São snapshots da KV em **RAM** do host, que servem para rollback de cauda em modelos híbridos (SWA/SSM). Sem eles, reenviar um prefixo cacheado reprocessa o contexto todo: 0,55 s → 2,39 s a ~1,7k tokens (a 100k+ são minutos) |
 | mmproj não pesa nada | Pesa ~1,7 GiB e não é modelado pelo fit-params. Some na mão em perfil multimodal |
 | ctx maior é de graça | Custa velocidade: 47 → 17,7 t/s entre 64k e 262k no mesmo GGUF. O custo do contexto cheio é latência, não erro |
-| KV q8 é o padrão "qualidade" | q8 ≈ lossless; q4 ≈ −1–5% nas nossas medições. Em 16 GB, os modelos grandes **ficam em q4 por teto de VRAM**, não por escolha |
+| KV q8 é o padrão "qualidade" | q8 ≈ lossless; q4 ≈ −1–5% nas minhas medições. Em 16 GB, os modelos grandes **ficam em q4 por teto de VRAM**, não por escolha |
 | `-ctk q8_0` a 128k cabe | No gsq-s não: 24,7 GB → transbordo p/ GTT → 24 t/s. q8 segura até ~96k; a 128k use q4 |
 | o modelo é a arquitetura que o nome diz | Leia o GGUF: `general.architecture = qwen4exp`, 48 camadas, 512 experts/10 ativos, 3/4 das camadas são SSM (`full_attention_interval 4`). `gguf-py` resolve: `python -c "from gguf import GGUFReader; ..."` |
 
@@ -102,7 +102,7 @@ Armadilhas medidas (cada uma nos custou tempo):
 - Default do `--reasoning-budget` é **−1 (sem teto)**. Modelos Qwen3.5/3.6 chegam a **100k+ tokens**
   de raciocínio solto. Sem teto, uma pergunta simples come a janela inteira.
 - **Qwen (oficial):** não abaixo de 1024.
-- Receita que usamos para agente: `--reasoning-budget 4096` **+**
+- Receita que uso para agente: `--reasoning-budget 4096` **+**
   `--reasoning-budget-message "I have thought long enough -- let me produce the final answer now."`
   — o teto vira segurança e a mensagem faz o modelo **fechar o raciocínio sozinho**, sem corte seco.
 - O knob que mais corta tempo é o **effort** (`reasoning_effort` low/medium/xhigh) — mas ele depende

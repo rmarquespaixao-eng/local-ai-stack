@@ -40,7 +40,7 @@ aqui são do OpenCode, mas as armadilhas de contexto/sampling valem para todos.
 - `limit.context` deve bater com o `-c`/`--max-context` real (confirme em `/props`). Errar para cima
   = `exceed_context_size_error` no meio da sessão; errar para baixo desperdiça contexto.
 
-## 5.2 Uma armadilha que nos custou um dia: `variants` é objeto, não array
+## 5.2 Uma armadilha que me custou um dia: `variants` é objeto, não array
 
 No OpenCode **v2**, `variants` é um **objeto** (`{"id": {settings}}`). Quem vem do v1 com array
 (`[{id, settings}]`) encontra um defeito inesperado: como o provider usa `additionalProperties: false`,
@@ -110,7 +110,7 @@ Rode com `--dry-run` primeiro. A unit `opencode-sync-models.timer` faz isso a ca
 
 Medimos no SQLite do OpenCode (`~/.local/share/opencode/opencode.db`, campo `tokens.cache.read`):
 
-| Mede | Nosso número |
+| Mede | Meu número |
 |---|---|
 | Hit de **prefix cache** (llama.cpp) | **96,8%** das chamadas |
 | Chamadas sem prefix cache | 4 em 305 (1,3%) |
@@ -142,7 +142,7 @@ Um MCP remoto lento parava o `opencode run` por ~10 min na inicialização (time
 remoto) — e o watchdog do harness atribuía o problema ao **modelo**. E com o MCP de benchmark ligado
 (31 tools a mais), a sessão ficava lenta e poluída.
 
-Isolamento que usamos em bateria: uma cópia da config com todos os MCPs desligados, apontada por
+Isolamento que uso em bateria: uma cópia da config com todos os MCPs desligados, apontada por
 `XDG_CONFIG_HOME`, com o resto em symlinks (para não divergir do config real):
 
 ```bash

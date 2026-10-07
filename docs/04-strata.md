@@ -6,12 +6,12 @@
   O Strata mantém **todos** os experts na RAM, põe na VRAM os que o seu uso real mais pede
   (perfil de experts + cache adaptativo) e o CPU calcula as faltas. É por isso que um 125B roda em
   uma RX 9070 XT de 16 GB.
-- No nosso hardware medimos **~45 t/s decode / ~1.100–1.250 t/s prefill** contra ~15–18 / ~450–650
+- No meu hardware, medi **~45 t/s decode / ~1.100–1.250 t/s prefill** contra ~15–18 / ~450–650
   do llama.cpp ROCm com o mesmo arquivo.
 
 **Custo:** o motor serve para essa família de modelos. Nada de "um Strata para tudo".
 
-## 4.1 Instalar (Linux, AMD — o nosso caso)
+## 4.1 Instalar (Linux, AMD — o meu caso)
 
 ```bash
 git clone https://github.com/Niko1221/Strata ~/llm/Strata
@@ -20,7 +20,7 @@ cd ~/llm/Strata
            --gguf-dir ~/models/qwen3.8-flash-next/IQ2_XS --no-start --yes
 ```
 
-Notas que valem para nós e para você:
+Notas que vale registrar antes de rodar:
 
 - **Não precisa instalar ROCm.** Com o driver `amdgpu` do kernel basta; sem um ROCm 7 em
   `/opt/rocm`, o setup instala o ROCm dentro do `.venv` a partir dos wheels da TheRock
@@ -28,7 +28,7 @@ Notas que valem para nós e para você:
 - O engine é **compilado na sua máquina** para a sua arquitetura (10–20 min, uma vez).
 - `--family` aceita `qwen` (o original), `swift` (fine-tune que pensa menos) e `coder`
   (experts podados, para 32 GB de RAM).
-- `--no-start` nos interessa porque quem vai ligar e desligar o motor é o llama-swap, não você.
+- `--no-start` me interessa porque quem vai ligar e desligar o motor é o llama-swap, não você.
 - Os arquivos vão para `~/llm/Strata-data` (packs, MTP) — deixe em SSD e com 70–120 GB livres.
 
 NVIDIA: o mesmo `setup.sh` pega CUDA pronto (RTX 20/30/40/50); veja o README do projeto.
@@ -36,7 +36,7 @@ NVIDIA: o mesmo `setup.sh` pega CUDA pronto (RTX 20/30/40/50); veja o README do 
 ## 4.2 O arquivo `strata-<modelo>.json`
 
 É o config do servidor: qual binário, quais argumentos do engine, tokenizer, porta, amostragem.
-Publicamos os nossos em [`config/strata/`](../config/strata). O essencial:
+Publico os meus em [`config/strata/`](../config/strata). O essencial:
 
 ```json
 {
@@ -66,16 +66,16 @@ Publicamos os nossos em [`config/strata/`](../config/strata). O essencial:
 }
 ```
 
-### Os quatro ajustes que tivemos que fazer à mão
+### Os quatro ajustes que tive que fazer à mão
 
 1. **`--vram-reserve-mib 3072`** *(necessário se a placa também é a do seu desktop)*
    O padrão deixava ~700 MiB livres; o compositor pedia VRAM, o `amdgpu` movia memória de GPU para
    RAM (GTT) e a tela congelava, ou o OOM killer encerrava o `plasmashell`. O upstream descreve o mesmo
    problema (#560, #516) e recomenda exatamente `--vram-reserve-mib 3072` em Linux desktop.
 
-2. **Bloco `sampling`** *(necessário — nos custou duas sessões em loop).*
+2. **Bloco `sampling`** *(necessário — me custou duas sessões em loop).*
    Sem esse bloco, e com um cliente que não manda temperatura (o OpenCode não manda), o engine fica
-   em **greedy** e o modo reasoning entra em repetição: vimos o mesmo comando ser rodado 46× e 140×.
+   em **greedy** e o modo reasoning entra em repetição: vi o mesmo comando ser rodado 46× e 140×.
    Depois de pôr `0.6 / 0.95 / 20 / min_p 0 / presence 1.5` (thinking) e `0.7 / 0.8 / 20 / presence
    1.5` (instruct): **zero loops em 288 chamadas**. Regra que ficou: *todo motor novo precisa de
    sampling explícito, em vez de depender do padrão.*
@@ -90,7 +90,7 @@ Publicamos os nossos em [`config/strata/`](../config/strata). O essencial:
    slots são escritos; um cache maior que a VRAM disponível não falha, só fica ~7× mais lento (números no
    upstream). Ajuste a reserva, não o cache.
 
-### Bônus que vale muito no nosso chip
+### Bônus que vale muito no meu chip
 
 - `STRATA_HIPBLASLT_TUNING` aponta para a tabela de GEMMs do hipBLASLt **da sua versão exata**. Com
   ROCm 7.2.4 (hipBLASLt 1.2.2) em gfx1201, o upstream mede 638 → 1.177 t/s de prefill a 32k com a
@@ -102,7 +102,7 @@ Publicamos os nossos em [`config/strata/`](../config/strata). O essencial:
   fica na sua máquina, não versionei.
 - `STRATA_HIP_WMMA=1` para gfx1201 com `--kv int8`: +17–31% de prefill nos kernels de atenção em
   matrix cores do RDNA4, decode igual, **mas muda os bits** (texto greedy diverge depois de ~50
-  tokens). Não testamos ainda; trate como experimental.
+  tokens). Não testei ainda; trate como experimental.
 
 ## 4.3 Raciocínio: um perfil só, escolhido pelo cliente
 
@@ -220,8 +220,8 @@ enxerga o contexto inteiro do perfil. Num perfil 256k, dois slots = duas convers
 Um exemplo pronto desse JSON está em
 [`config/strata/strata-iq2_xs-256k-parallel2.json`](../config/strata/strata-iq2_xs-256k-parallel2.json)
 (identico ao `strata-iq2_xs-256k.json`, com `"parallel": 2`, `model_name` e `log` próprios). Ele **não**
-faz parte do `config/llama-swap.yaml` publicado: na nossa máquina quem roda em batch é o perfil 256k do
-Swift, e preferimos publicar como exemplo em vez de um perfil que não está em uso.
+faz parte do `config/llama-swap.yaml` publicado: na minha máquina quem roda em batch é o perfil 256k do
+Swift, e preferi publicar como exemplo em vez de um perfil que não está em uso.
 
 **Custo medido** (Swift 1.5 IQ2_XS a 256k, 2 slots, RX 9070 XT 16 GB / 54 GB de RAM):
 
@@ -232,7 +232,7 @@ Swift, e preferimos publicar como exemplo em vez de um perfil que não está em 
 | Duas conversas simultâneas | uma de ~145k e outra de ~198k de tokens, ~45 t/s **somadas**, RAM 51/55 GB sem swap |
 | MTP em batch | **desligado** — em batch o slot decodifica 1 token por janela; sozinho, volta ao caminho com MTP |
 
-**Por que 2 e não 5:** tentamos 5. A VRAM cabia (4,74 GiB), mas o load levou a RAM a 54/54 GB e a
+**Por que 2 e não 5:** tentei 5. A VRAM cabia (4,74 GiB), mas o load levou a RAM a 54/54 GB e a
 máquina entrou em thrash. Voltou para 2, que aguenta duas conversas de ~200k com folga. Como conta
 aproximada: `RAM disponível − 10 GB` para os experts, e ~3 GiB de KV pinada por slot em 256k — com
 64 GB de RAM dá para 3 firmes; com 96 GB, os 5 voltam ao jogo.
@@ -249,10 +249,10 @@ aproximada: `RAM disponível − 10 GB` para os experts, e ~3 GiB de KV pinada p
 - **`--prefill auto`** já deixa o chunk grande; em batch o prefill continua sequencial por request,
   então o segundo cliente espera o primeiro terminar de ler o prompt.
 
-## 4.7 O que ainda não sabemos
+## 4.7 O que ainda não sei
 
-- **IQ3_XXS no Strata com 54 GB de RAM**: o pack está feito e o perfil existe, mas ainda não temos
+- **IQ3_XXS no Strata com 54 GB de RAM**: o pack está feito e o perfil existe, mas ainda não tenho
   medição limpa — prefiro não publicar número adivinhado.
-- O `--ple-gguf` dos nossos JSONs do Swift aponta para o shard **1**. Para o GSQ-RCO original o PLE
-  é o shard **2** (shard 1 é para o OrcaRouter). Provável erro nosso, não descoberto até esta
+- O `--ple-gguf` dos meus JSONs do Swift aponta para o shard **1**. Para o GSQ-RCO original o PLE
+  é o shard **2** (shard 1 é para o OrcaRouter). Provável erro meu, não descoberto até esta
   revisão. Se copiar os configs para Swift, confira esse caminho.

@@ -1,12 +1,12 @@
-# Templates `.jinja` que ajustamos
+# Templates `.jinja` que ajustei
 
 Chat template é o que decide se o modelo **entende** `reasoning_effort`, `enable_thinking` e o formato
 de ferramenta. Um template errado normalmente não gera erro: o modelo só deixa de cooperar — e a leitura que fica é
-"esse modelo é ruim". Estes são os dois que usamos, com o motivo de cada mudança.
+"esse modelo é ruim". Estes são os dois que uso, com o motivo de cada mudança.
 
 | Arquivo | Para quê | Como plugar |
 |---|---|---|
-| `qwen3.8-template.jinja` | Qwen3.8-27B (gsq-s / Swift 27B) no llama.cpp | `--chat-template-file /home/YOU/llm/templates/qwen3.8-template.jinja` (no nosso config é o macro `qtpl`) |
+| `qwen3.8-template.jinja` | Qwen3.8-27B (gsq-s / Swift 27B) no llama.cpp | `--chat-template-file /home/YOU/llm/templates/qwen3.8-template.jinja` (no meu config é o macro `qtpl`) |
 | `ministral-3-relaxed.jinja` | Ministral 3 (e qualquer modelo cujo template oficial exige alternância estrita) | idem, `--chat-template-file` |
 | `check_render.py` | valida os dois templates sem subir modelo | `python3 templates/check_render.py` |
 
@@ -15,7 +15,7 @@ de ferramenta. Um template errado normalmente não gera erro: o modelo só deixa
 ### `qwen3.8-template.jinja` — esforço de raciocínio que não é ignorado
 
 O template embutido no GGUF declara os esforços que aceita e levanta exceção. Quando
-passamos a usar variantes `low`/`medium`/`xhigh` pelo OpenCode, duas coisas apareceram:
+passei a usar variantes `low`/`medium`/`xhigh` pelo OpenCode, duas coisas apareceram:
 
 1. O ramo `medium` tinha se perdido na cópia custom do template → o esforço virava `xhigh` em silêncio.
    Restauramos a **validação explícita** (`not in ('low','medium','xhigh') → raise_exception`) para que
@@ -66,6 +66,6 @@ versão antiga do mesmo modelo) e depois atribuir a saída estranha ao modelo.
 
 ## Licença/attribution
 
-Templates derivados dos embutidos nos GGUFs que baixamos (Qwen/ISTA-DASLab, Unsloth/Mistral). As
-licenças das weights se aplicam ao template; publicamos essas adaptações como *diff* de uso próprio —
+Templates derivados dos embutidos nos GGUFs que baixei (Qwen/ISTA-DASLab, Unsloth/Mistral). As
+licenças das weights se aplicam ao template; publico essas adaptações como *diff* de uso próprio —
 se for redistribuir pesos, siga a licença do modelo correspondente.

@@ -1,24 +1,23 @@
-# 2. Modelos recomendados e as quantizações que testamos
+# 2. Modelos recomendados e as quantizações que testei
 
 Dois eixos decidem tudo: **o que cabe na memória** e **o que fecha uma tarefa de agente**. Eles são
 independentes — modelo rápido que não fecha tarefa, modelo ótimo que não cabe no PC.
 
-> Legenda: **medido localmente** = rodamos aqui e anotamos. **model card** = número do autor, não
-> reproduzimos. As provas citadas (`api-tarefas`, `agente-spring-ai`) estão em
+> Legenda: **medido localmente** = rodei aqui e anotei. **model card** = número do autor, que não reproduzi. As provas citadas (`api-tarefas`, `agente-spring-ai`) estão em
 > [docs/08-avaliacao.md](08-avaliacao.md).
 
 ---
 
 ## 2.1 O principal: Qwen3.8-Flash-Next 125B-A6B (MoE) + motor Strata
 
-O melhor custo/benefício que encontramos para "agente de código local". Um MoE de 125 B com
+O melhor custo/benefício que encontrei para "agente de código local". Um MoE de 125 B com
 **10 experts ativos por token** (512 experts × 48 camadas), cabeça MTP e uma tabela de n-gramas/PLE
 de ~29 GB. Com o motor certo, ele roda em 16 GB de VRAM + 54 GB de RAM a ~45 t/s.
 
 | Quant (GSQ-RCO, ISTA-DASLab) | Arquivo | Experts na RAM | Cabe em 54 GB? | Veredito local |
 |---|---:|---:|---|---|
 | `Q2_0` (2,40 bpw) | 66,4 GB | ~34 GB | sim | opção mais rápida; task avg 89,07 (model card) |
-| **`IQ2_XS` (2,50 bpw)** | 68,0 GB | **~35,5 GB** | **sim ← usamos** | **APROVADO** — melhor ponto entre velocidade e qualidade aqui |
+| **`IQ2_XS` (2,50 bpw)** | 68,0 GB | **~35,5 GB** | **sim ← é a que uso** | **APROVADO** — melhor ponto entre velocidade e qualidade aqui |
 | `IQ3_XXS` (3,00 bpw) | 75,8 GB | ~43 GB | no limite | perfil criado, em teste; sem pack pronto = não recomendo ainda |
 | `IQ3_S` (3,50 bpw) | ~83 GB | ~50 GB | **não** | precisa ≥ 64 GB de RAM |
 
@@ -26,7 +25,7 @@ de ~29 GB. Com o motor certo, ele roda em 16 GB de VRAM + 54 GB de RAM a ~45 t/s
 é **idêntico** entre as quants — dá para economizar 28,8 GB de download usando hard link:
 baixe a segunda quant com `ln` do shard 2 em vez de baixa-lo de novo (mesmo SHA-256, conferido).*
 
-**Regra prática do Strata (o que a gente aplica):** `RAM ≥ experts_em_CPU + ~10 GB`. Com 54 GB, o
+**Regra prática do Strata (a que aplico):** `RAM ≥ experts_em_CPU + ~10 GB`. Com 54 GB, o
 teto é IQ2_XS. Com 64 GB, IQ3_XXS/IQ3_S entram no jogo — essa é literalmente a única razão para
 fazer upgrade de RAM nesta stack.
 
@@ -146,7 +145,7 @@ mesmos testes ocultos, no mesmo hardware. Quase nenhum falhou por velocidade: fa
 Sobre **MoE com experts na RAM** (o caso geral, não só o Flash-Next): o `tg` empata em ~12–18 t/s
 independentemente do tamanho do modelo — o gargalo é a **banda da RAM**, não o modelo. Consequência
 contra-intuitiva e medida aqui: **quant maior = mais qualidade com a MESMA VRAM**, quase de graça.
-É por isso que deixamos `qwen3-coder-next` em IQ4_XS e o `mistral-small-4` em IQ3_XXS.
+É por isso que deixei `qwen3-coder-next` em IQ4_XS e o `mistral-small-4` em IQ3_XXS.
 
 ---
 
@@ -154,7 +153,7 @@ contra-intuitiva e medida aqui: **quant maior = mais qualidade com a MESMA VRAM*
 
 | Modelo | Repo HuggingFace |
 |---|---|
-| Qwen3.8-Flash-Next (GSQ-RCO) | `ISTA-DASLab/Qwen3.8-Flash-Next-GSQ-RCO-GGUF` (usamos a revision `ed59f920`) |
+| Qwen3.8-Flash-Next (GSQ-RCO) | `ISTA-DASLab/Qwen3.8-Flash-Next-GSQ-RCO-GGUF` (uso a revision `ed59f920`) |
 | Qwen3.8-Flash-Next Coder (experts podados) | `ISTA-DASLab/Qwen3.8-Flash-Next-GSQ-RCO-Coder-GGUF` |
 | Qwen3.8-27B (GSQ-RCO) | `ISTA-DASLab/Qwen3.8-27B-GSQ-RCO-GGUF` |
 | Swift 1.5 (fine-tune curto do Flash-Next) | `ukisai/Swift-1.5-Qwen3.8-Flash-Next-GSQ-RCO-GGUF` |
