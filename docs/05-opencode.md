@@ -40,12 +40,12 @@ aqui são do OpenCode, mas as armadilhas de contexto/sampling valem para todos.
 - `limit.context` deve bater com o `-c`/`--max-context` real (confirme em `/props`). Errar para cima
   = `exceed_context_size_error` no meio da sessão; errar para baixo = você joga contexto fora.
 
-## 5.2 A armadilha que custou um dia inteiro: `variants` é objeto, não array
+## 5.2 A armadilha que custou um dia: `variants` é objeto, não array
 
 No OpenCode **v2**, `variants` é um **objeto** (`{"id": {settings}}`). Quem vem do v1 com array
-(`[{id, settings}]`) vê o pior bug possível: como o provider tem `additionalProperties: false`, **uma
-entrada malformada descarta o provider inteiro** — os 19 modelos locais somem da lista e toda sessão
-dá `Model unavailable`. E restart **não** resolve.
+(`[{id, settings}]`) encontra um defeito inesperado: como o provider usa `additionalProperties: false`,
+uma entrada malformada descarta o **provider inteiro** — os modelos locais somem da lista e toda sessão
+passa a dar `Model unavailable`. Reiniciar não resolve (ver abaixo).
 
 ```bash
 opencode api GET /api/config     # mostra os providers EFETIVOS (depois da normalização)
@@ -71,9 +71,9 @@ Dois fatos que economizam tempo:
 - O `model` raiz do config **não retém** a variante; é preciso pedi-la por chamada (`#xhigh`) ou no
   `/models` da TUI.
 - Perfil com `--reasoning off` + `enable_thinking:false` **ignora** as variantes. Se o seletor não
-  faz nada, procure isso no cmd antes de culpar o cliente.
+  faz nada, procure isso no cmd antes de assumir que o problema é do cliente.
 - Precisa de restart do **serviço** para aplicar mudanças de provider (`opencode service restart`),
-  mas **nunca com uma TUI aberta** — a TUI perde o servidor e congela.
+  mas evite fazê-lo com uma TUI aberta: ela perde o servidor e congela.
 
 ## 5.4 Escolher o modelo no projeto (a TUI não tem `-m`)
 
@@ -92,11 +92,11 @@ Headless (é assim que rodo baterias):
 opencode run --standalone --auto --model 'llama-cpp/strata-flash-next#off' --format json "<prompt>"
 ```
 
-⚠️ `opencode run` usa **`$PWD`**, não um `--cwd`. Se quiser rodar em outro diretório, `cd` antes.
+`opencode run` usa **`$PWD`** (não existe `--cwd`). Para rodar em outro diretório, faça `cd` antes.
 
 ## 5.5 Sincronizar a lista de modelos com o llama-swap
 
-Manter 17 nomes na mão é receita para divergência. [`scripts/sync-opencode-models.py`](../scripts/sync-opencode-models.py)
+Manter 17 nomes na mão tende a divergir do config real. [`scripts/sync-opencode-models.py`](../scripts/sync-opencode-models.py)
 lê `/v1/models` do llama-swap e escreve no config:
 
 - acrescenta o que apareceu, remove o que sumiu;
@@ -125,8 +125,8 @@ Consequências práticas:
 2. **Cache semântico (por similaridade da última mensagem) não serve para agente.** A chave seria a
    mesma para 10–49 passos consecutivos do mesmo loop — serviria resposta velha e quebraria o
    trabalho. Serve para FAQ/docs de corpus fixo, não para isso.
-3. **Prompt aberto é o que mata modelo local.** Um modelo local não "explora e resolve": ele explora
-   *para sempre*. O prompt precisa ser **plano** (tarefas numeradas, arquivos, critérios). Na mesma
+3. **Prompt aberto é o que mais atrapalha um modelo local.** Ele tende a explorar sem parar em vez de
+   "explorar e resolver". O prompt precisa ser **plano** (tarefas numeradas, arquivos, critérios). Na mesma
    tarefa com prompt aberto: 1º edit no turno 40, 1 edição, 0 commits. Com plano: 1º edit no turno
    3, 13 edições, 1 commit, completa em 3,2 min.
 4. **`limit.output` é o teto de *uma resposta* — e corta trabalho bom no meio.** O planejador escreve
@@ -139,14 +139,14 @@ Consequências práticas:
 ## 5.7 MCPs: o vazamento que culpava o modelo
 
 MCP remoto lento travava o `opencode run` por ~10 min na inicialização (timeout de SSE do servidor
-remoto) — e o watchdog do harness atribuía a culpa ao **modelo**. E com o MCP de benchmark ligado
+remoto) — e o watchdog do harness atribuía o problema ao **modelo**. E com o MCP de benchmark ligado
 (31 tools a mais), a sessão ficava lenta e poluída.
 
-Isolamento que usamos em bateria: uma cópia da config **com todos os MCPs desligados**, apontada por
+Isolamento que usamos em bateria: uma cópia da config com todos os MCPs desligados, apontada por
 `XDG_CONFIG_HOME`, com o resto em symlinks (para não divergir do config real):
 
 ```bash
 XDG_CONFIG_HOME=/tmp/xdg-isolado opencode run --standalone --auto --model ... "..."
 ```
 
-Detalhe importante: **`opencode.json` de projeto não desliga MCP global.** Só o XDG isola.
+Detalhe importante: `opencode.json` de projeto **não** desliga MCP global. Só o XDG isola.

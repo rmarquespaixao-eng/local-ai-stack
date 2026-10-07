@@ -1,6 +1,7 @@
 # 8. Como saber se um modelo serve (a escada de provas)
 
-Velocidade e benchmark de texto **não preveem** nada do que importa para agente. Dos 19 modelos que passaram por aqui, muitos eram rápidos e só 4 fecharam a prova difícil. Esta é a metodologia que
+Velocidade e benchmark de texto preveem pouco do que importa para agente. Dos 19 modelos que passaram
+por aqui, muitos eram rápidos e 4 fecharam a prova difícil. Esta é a metodologia que
 usamos — e que você pode reproduzir com fixtures seus.
 
 ## 8.1 A escada (3 degraus, pare no primeiro "não")
@@ -15,7 +16,7 @@ usamos — e que você pode reproduzir com fixtures seus.
 
 Se um modelo reprova no 3, registre **como** reprovou (loop? contrato errado? parou sem chamar
 ferramenta?). É a informação que evita repetir o teste daqui a 3 meses — a tabela em
-[docs/02](02-modelos.md#23-reprovados--o-que-não-tentar-e-por-quê) existe por causa disso.
+[docs/02](02-modelos.md#23-reprovados--o-que-evitar-e-por-quê) existe por causa disso.
 
 ## 8.2 Aceite oculto: a única coisa que torna o teste válido
 
@@ -25,13 +26,13 @@ Um modelo pode "terminar a tarefa" escrevendo arquivos que não passam nos teste
 fixture/
   repo.bundle          # git bundle do repositório-base, branch `fixture` (o que o modelo recebe)
   fixture.json         # timeout, comandos de build/teste, o que está protegido
-  acceptance/          # ⚠️ NUNCA vai para o modelo — só para o avaliador
+  acceptance/          # não vai para o modelo — só para o avaliador
     tests/…            # os testes que decidem o veredito
     reference.patch    # opcional: uma solução known-good para validar o oráculo
 ```
 
 **Validar o oráculo antes de usar:** rode os testes contra a referência (tem que dar 100%) e contra o
-repositório base (tem que dar ~0%). Se a base passar, o teste não mede nada. Nos nossos fixtures de
+repositório base (tem que dar ~0%). Se a base passa, o teste não está medindo nada. Nos nossos fixtures de
 planejamento: referência 30/30, base 21/30 — daí o teste ser útil.
 
 Armadilhas que os testes precisam pegar (e pegaram): resposta HTTP errada (404 vs 200), contrato de
@@ -41,35 +42,36 @@ e você acha que o modelo local está trocando de modelo sozinho).
 
 ## 8.3 Watchdog: as 4 formas de falhar de um agente local
 
-Rodar e esperar é perder a noite. Todo run precisa de um vigia com regras explícitas:
+Rodar sem vigia significa descobrir de manhã que o run morreu às 23h. Todo run precisa de regras
+explícitas de parada:
 
 | Modo de falha | Critério que usamos | O que significa |
 |---|---|---|
 | `loop` | 4 chamadas **idênticas** seguidas | sampling agressivo demais, ou greedy em reasoning |
 | `error_loop` | o **mesmo erro** 6× | modelo não consegue autocorrigir; em Java, quase sempre contrato de tipos |
-| `no_action` | 10 min sem nenhum `write`/`edit` | narrou o plano e parou (o defeito clássico do Hermes/LFM) |
+| `no_action` | 10 min sem nenhum `write`/`edit` | narrou o plano e parou (visto no Hermes e no LFM) |
 | `no_progress` | 15 min sem commit | mexendo sem produzir |
 | `timeout` | api-tarefas 1800 s · spring-ai 3600 s | teto do fixture |
 
 E o mais importante da categoria **não é o modelo**: MCP remoto travando a inicialização, swap de
-modelo no meio do teste, ou a GPU pedindo arrego. Se o watchdog disparar, confira o hardware/isolamento
+modelo no meio do teste, ou a GPU sem folga. Se o watchdog disparar, confira o hardware/isolamento
 antes de culpar o candidato ([docs/07](07-problemas.md#76-método-de-medição-os-erros-que-quase-nos-fizeram-decidir-errado)).
 
 ## 8.4 Isolamento e regras do protocolo
 
 1. **Config isolado por run**: cópia do `opencode.json` com todos os MCPs desligados via
    `XDG_CONFIG_HOME`. Sem isso, um MCP lento contamina o tempo e o veredito.
-2. **Não edite o config do llama-swap durante a bateria** (`-watch-config` derruba o stream).
+2. Evite editar o config do llama-swap durante a bateria (`-watch-config` derruba o stream em uso).
 3. **Duas rodadas** no mínimo para promover. Nosso principal aprovou 2 de 3.
-4. **Promova com evidência, não com benchmark de texto.** HumanEval não mede o eixo multi-arquivo.
+4. Promova com evidência de agente, não com benchmark de texto: HumanEval não mede o eixo multi-arquivo.
 5. **Roda noturna com parada automática** em sinal de hardware (MCE no journal, timeout de GPU, VRAM
-   livre abaixo do mínimo). Uma fila sem isso queima a noite e dados errados.
-6. **Reprovado: registra e arquiva.** Mover para `REPROVADOS/` + comentar o perfil com
+   livre abaixo do mínimo). Sem isso a fila continua rodando e de manhã você tem dados sem valor.
+6. **Reprovado: registre e arquive.** Mover para `REPROVADOS/` + comentar o perfil com
    `# [REPROVADO <data> — <motivo>]`. Apagar o GGUF só quando alguém mandar.
 
 ## 8.5 Como montar fixtures equivalentes (sem os nossos)
 
-Os nossos repositórios de teste não vão neste repo (são privados), mas a receita é curta e o resultado
+Nossos repositórios de teste não vão neste repo (são privados), mas a receita é curta e o resultado
 é o que importa: um serviço pequeno, build forte, testes que o modelo não vê.
 
 **Degrau 2 — `api-tarefas` (TypeScript):**
@@ -82,9 +84,9 @@ Os nossos repositórios de teste não vão neste repo (são privados), mas a rec
 - 8 tarefas que exigem mexer em contrato de tipos + bean + prompt.
 - 22 testes ocultos (11 + 7 + 4 por módulo) com um fake do `ChatModel` — **e um teste E2E opcional que
   usa o próprio modelo local como cérebro**; é o que prova que o agente funciona de ponta a ponta.
-- Armadilha proposital: um teste que exige que chaves dentro de um prompt sejam preservadas (`{` vs
-  `{{`). Modelos que "arredondam" o prompt caem aí.
-- Detalhe que queima: no Spring AI 2.0, `base-url` precisa do sufixo `/v1`.
+- Armadilha proposital: um teste exige que as chaves dentro de um prompt sejam preservadas (`{` vs
+  `{{`). Modelos que "normalizam" o prompt caem aí.
+- Detalhe que consome tempo: no Spring AI 2.0, `base-url` precisa do sufixo `/v1`.
 
 **Provas de planejamento (o degrau 4, que criamos depois):**
 - `planejar-tarefas`: o modelo recebe só um `FEATURE.md` de produto (3 frases), escreve `SPEC.md` +

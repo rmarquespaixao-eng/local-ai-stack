@@ -1,8 +1,7 @@
 # Contribuindo
 
-Este repo é o registro da **nossa** configuração — escrito para ser útil a quem tem hardware
-parecido, não como especificação universal. Isso significa que mudanças são bem-vindas, mas com um
-critério: **número medido, não opinião**.
+Este repo é o registro da nossa configuração — escrito para ser útil a quem tem hardware parecido, não
+como especificação universal. Mudanças são bem-vindas com um critério: número medido em vez de opinião.
 
 ## O que ajuda
 
@@ -10,8 +9,7 @@ critério: **número medido, não opinião**.
   IQ3_XXS deu X t/s" vale mais que qualquer sugestão genérica. Diga a placa, a RAM, a versão do
   motor e o comando exato.
 - **Um reprovado novo.** Se você rodou a escada ([docs/08](docs/08-avaliacao.md)) e um modelo falhou,
-  mande o **modo de falha** (loop? parou sem chamar ferramenta? quebrou contrato? recusou?). É a
-  tabela com mais valor aqui.
+  mande o **modo de falha** (loop? parou sem chamar ferramenta? quebrou contrato? recusou?). É a parte com mais valor para quem vai testar depois.
 - **Um defeito que não está em [docs/07](docs/07-problemas.md)**, com o diagnóstico de como você
   chegou à causa.
 - **Configurações que não funcionaram**, com o motivo. Um "não faça isso" com explicação economiza

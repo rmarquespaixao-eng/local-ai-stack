@@ -30,7 +30,7 @@ A conta que fizemos em cada perfil, sempre com folga:
 ```
 VRAM total útil          ~ 15.920 MiB
 - desktop ocioso         ~   500 MiB
-- margem obrigatória     ~ 3.072 MiB   (menos que isso → page allocation failure)
+- margem que deixamos    ~ 3.072 MiB   (abaixo disso → page allocation failure)
 = sobra para pesos+KV    ~ 12.350 MiB
 ```
 
@@ -55,11 +55,11 @@ cat /sys/class/drm/card1/device/mem_info_vram_used /sys/class/drm/card1/device/m
 # RAM utilizável e o quanto já está em uso
 free -g
 
-# banda de RAM (proxy simples: leitura sequencial grande)
-dd if=/dev/zero of=/dev/null bs=1M count=40000 2>/dev/null   # não mede banda de verdade
-# para banda real, rode um teste STREAM-like com 2–4 threads; com mais threads o número CAI
+# banda de RAM (proxy simples de leitura sequencial — não é medida de banda)
+dd if=/dev/zero of=/dev/null bs=1M count=40000 2>/dev/null
+# para banda real, rode um teste STREAM-like com 2–4 threads (com mais threads o número costuma cair)
 
-# residência de um GGUF grande (o assassino silencioso): quantos GB estão de fato na RAM
+# residência de um GGUF grande (é o que entrega lentidão sem erro na tela): quantos GB estão na RAM
 fincore ~/models/qwen3.8-flash-next/IQ2_XS/*.gguf
 vmtouch -l ~/models/qwen3.8-flash-next/IQ2_XS/*.gguf   # se estiver em page cache
 ```
@@ -73,24 +73,23 @@ Sinais de que você estourou o orçamento (todos ocorreram aqui):
 | Travada de vários minutos no primeiro load | normal em MoE grande: o motor está lendo 35–55 GB para a RAM |
 | PC reinicia sozinho sob carga de IA | pode ser CPU/estabilização, não a GPU (no nosso caso: MCE não corrigido num núcleo, ver [docs/07](07-problemas.md)) |
 
-## 1.4 As regras de ouro (não violar)
+## 1.4 As regras de ouro
 
 1. **≥ 2–3 GB de VRAM livres, sempre.**
    llama.cpp: `--fit on --fit-target 3072` · Strata: `--vram-reserve-mib 3072`.
-   Com `--fit-target 1024` a gente deixou a placa em 15,2/16,3 GB e o compositor/Chrome passaram a
-   falhar alocação. O Strata no padrão deixava só ~700 MiB e travava o PC inteiro.
+   Com `--fit-target 1024` deixamos a placa em 15,2/16,3 GB e o compositor/Chrome passaram a falhar
+   alocação. O Strata no padrão deixava ~700 MiB e travava a máquina.
 2. **Um modelo grande por vez.** O principal ocupa ~46–50 GB de RAM. No llama-swap, `ttl: 600` em
    todo perfil que não precisa estar sempre quente.
 3. **`--parallel 1` no llama.cpp em agente.** Ele **divide** o `-c` entre os slots: com `--parallel 2`
    e `-c 128000`, cada agente enxerga 64k e a sessão morre com `finish_reason: length` — e 1 slot não
    custa VRAM extra. (No Strata é o contrário: cada slot leva o contexto **inteiro** — ver docs/04.)
-4. **Sampling explícito em todo perfil.** Os padrões do motor quase nunca são os da model card, e
-   greedy em modo reasoning é receita para loop de repetição.
+4. **Sampling explícito em todo perfil.** Os padrões do motor raramente coincidem com a model card, e
+   greedy em modo reasoning costuma virar loop de repetição.
 5. **Medir no `llama-server`, não no `llama-bench`.** O server gasta ~2 GB a mais de VRAM e tem
    preferências diferentes de ubatch. Benchmark ≠ servidor.
-6. **Não edite o config do llama-swap durante um teste.** Com `-watch-config` ele recarrega e
-   derruba o stream em uso (`stream ended without finish_reason`). Perdemos uma avaliação inteira
-   assim.
+6. **Evite editar o config do llama-swap durante um teste.** Com `-watch-config` ele recarrega e derruba o
+   stream em uso (`stream ended without finish_reason`). Perdemos uma avaliação inteira assim.
 7. **Reprovado fica registrado, não apagado.** Mover o GGUF para uma pasta `REPROVADOS/` e comentar
    o perfil com `# [REPROVADO <data> — <motivo>]`. Daqui a 3 meses você vai querer saber por que
    aquilo saiu.

@@ -89,21 +89,21 @@ para o 27B, com o que cada um custa:
 | IQ3_XXS | 3,00 | 10,1 GB | 74,81 | 100,00 | 84,57 |
 | **IQ3_S** | 3,50 | 11,8 GB | — | — | — (autor: "recomendado, task-lossless") |
 
-Interpretação prática: **em denso de 27B dentro de 16 GB de VRAM, a quant "perdida" para o modelo
-cheio é pequena e quase toda ela está em LCB (código difícil)**. IQ3_S é o ponto em que a model card
+Interpretação prática: em denso de 27B dentro de 16 GB de VRAM, a perda para o modelo cheio é pequena e
+concentrada em LCB (código difícil). IQ3_S é o ponto em que a model card
 declarou perda zero; se faltar ~1,5 GB, IQ3_XXS é a descida honesta.
 
 ---
 
-## 2.3 Reprovados — o que NÃO tentar (e por quê)
+## 2.3 Reprovados — o que evitar (e por quê)
 
-Esta é, de longe, a tabela mais útil deste repo. Todos os abaixo rodaram as **mesmas** provas, com
-os mesmos testes ocultos, no mesmo hardware. Quase nenhum falhou por velocidade: falhou por
+Este é o trecho que mais economiza tempo alheio. Todos abaixo rodaram as **mesmas** provas, com os
+mesmos testes ocultos, no mesmo hardware. Quase nenhum falhou por velocidade: falhou por
 **comportamento de agente**.
 
 | Modelo | Velocidade | O que aconteceu | Veredito |
 |---|---|---|---|
-| **gpt-oss-120b** (MXFP4, 63 GB) | **1,3–1,6 t/s** ❌ | 59 GB de pesos > 54 GB de RAM: só ~49 GB residentes, o resto lido do NVMe a cada token. Nenhum erro na tela | REPROVADO (reavaliar só com ≥64 GB) |
+| **gpt-oss-120b** (MXFP4, 63 GB) | **1,3–1,6 t/s** ❌ | 59 GB de pesos em 54 GB de RAM: só ~49 GB residentes, o resto lido do NVMe a cada token. Nenhum erro na tela | REPROVADO (reavaliar só com ≥64 GB) |
 | LFM2.5-2.6B | 150 t/s ✅ | usou a ferramenta de executar JS no lugar do shell, 0 commits, quebrou o contrato | REPROVADO |
 | Hermes-4-14B | 59 t/s ✅ | **narra o plano e encerra o turno sem chamar nenhuma ferramenta** (0 tool calls, 15–20 s). Tool calling isolado funciona | REPROVADO |
 | Ministral-3-8B | 56,5 t/s ✅ | 756 s, 126 tool calls, **0 commits**: não fez o TypeScript rodar e mexeu no `tsconfig`/`package.json` | REPROVADO |
@@ -124,11 +124,11 @@ os mesmos testes ocultos, no mesmo hardware. Quase nenhum falhou por velocidade:
   *e* em thinking, e independe da velocidade.
 - **Ferramenta errada:** troca shell por exec de JS, ou edit por write. O loop-guard do harness pega,
   mas o modelo reprovou.
-- **"Commitar sem funcionar":** 4/4 commits que não passam nos testes. **Nunca aceite veredito sem
-  teste oculto.**
+- **Commitar sem funcionar:** 4/4 commits que não passam nos testes. Sem teste oculto, o veredito não
+  significa nada.
 - **Refusar com prompt de agente:** gpt-oss recusou só porque o prompt tinha o system-reminder do
   harness. Teste com o seu prompt real.
-- **Modelo > RAM é o pior defeito**, porque é silencioso: não dá erro, só fica lento.
+- Modelo maior que a RAM é o defeito mais difícil de ver: não dá erro, só fica lento.
 
 ---
 
@@ -141,7 +141,7 @@ os mesmos testes ocultos, no mesmo hardware. Quase nenhum falhou por velocidade:
 | 16 GB VRAM + 96 GB RAM | IQ3_S ou IQ4 no Strata; MoE grande 100B+ vira opção real |
 | 24 GB VRAM (3090/4090/5080) | denso 27B em Q8_0 na VRAM + MTP n-max 2–4; Flash-Next IQ3_XXS |
 | 32 GB VRAM (5090) | dá para manter o MoE quase todo na GPU; aí `--n-cpu-moe`/`--fit` mudam de figura — os números deste repo **não** se aplicam direto |
-| Só CPU / 8 GB VRAM | esta stack não é para você; fique em denso ≤14B Q8 e não espere agente multi-arquivo |
+| Só CPU / 8 GB VRAM | aqui fica apertado: use denso ≤14B em Q8 e não conte com agente multi-arquivo |
 
 Sobre **MoE com experts na RAM** (o caso geral, não só o Flash-Next): o `tg` empata em ~12–18 t/s
 independentemente do tamanho do modelo — o gargalo é a **banda da RAM**, não o modelo. Consequência
