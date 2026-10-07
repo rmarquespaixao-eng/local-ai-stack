@@ -12,6 +12,9 @@ Se você tem um rig parecido (12–16 GB de VRAM, 48–64 GB de RAM, GPU AMD ou 
 saber **o que configurar, qual quant usar, com quais flags e o que não costuma funcionar**, este
 repo é para você.
 
+**Para montar do zero, comece por [SETUP.md](SETUP.md)** — passo a passo com os comandos conferidos.
+Para entender e decidir, os docs abaixo.
+
 ---
 
 ## TL;DR — o que funciona
@@ -44,6 +47,7 @@ repo é para você.
 
 | | |
 |---|---|
+| [SETUP.md](SETUP.md) | **Montar a stack do zero**: checar encaixe, baixar pesos, compilar motores, llama-swap, Strata, OpenCode, teste de fumaça por camada, checklist |
 | [docs/01-maquina.md](docs/01-maquina.md) | Especificação do rig, orçamento de VRAM/RAM, como medir o seu, regras de ouro |
 | [docs/02-modelos.md](docs/02-modelos.md) | **Modelos recomendados e as quantizações que testamos** (com números), tabela de aprovados/reprovados e por quê |
 | [docs/03-llama-swap.md](docs/03-llama-swap.md) | Instalar e configurar o llama-swap: macros, padrão de perfil, `ttl`, saúde, troca de modelo |
