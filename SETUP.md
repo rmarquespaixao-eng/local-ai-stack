@@ -189,7 +189,7 @@ correspondem a nada na sua máquina — perfil que aponta para binário inexiste
 Se o `cbin` (PR ggml#29887) não existe para você, troque `${cbin}` por `${rbin}` e apague os
 `--moe-cache-mib`.
 
-Unit de usuário (o `ulimit -l unlimited` é obrigatório para `mlock`/experts pinados):
+Unit de usuário — aqui o `ulimit -l unlimited` é necessário, porque `mlock` e os experts pinados pedem memória travada:
 
 ```bash
 cp /tmp/local-ai-stack/config/systemd/llama-swap.service ~/.config/systemd/user/
