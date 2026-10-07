@@ -7,7 +7,7 @@
 | `strata-iq2_xs-256k.json` | `strata-flash-next-256k` | contexto longo (262144); sem `expert_profile_save` (menos RAM em uso) |
 | `strata-iq2_xs-256k.shared-settings.json` | idem | default `none` (perfil de trabalho, não de planejamento) |
 | `strata-iq2_xs-256k-parallel2.json` | (exemplo, sem perfil no config publicado) | mesmo 256k com `"parallel": 2`: duas conversas de 256k ao mesmo tempo — passo a passo em [docs/04 §4.6](../../docs/04-strata.md) |
-| `strata-swap.sh` | todos os `strata-*` | wrapper que mata o grupo no SIGTERM |
+| `strata-swap.sh` | todos os `strata-*` | wrapper que encerra o grupo ao receber SIGTERM |
 
 **Não publicamos** os JSONs dos perfis `strata-swift-*` e `strata-flash-next-iq3xxs` do
 `config/llama-swap.yaml`: o Swift tem um `--ple-gguf` que suspeitamos estar apontando para o shard

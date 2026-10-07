@@ -51,7 +51,7 @@ experts com hit rate medido de 82–88%). O preço: o motor só serve para essa 
 |---|---|---|---|
 | manual | ✅ 168 s 4/4 | ✅ ~690 s 8/8, 22/22 | APROVADO |
 | automática 1 | ✅ 150 s | ✅ 601 s, 98 tools, 0 erros | APROVADO |
-| automática 2 | ✅ 170 s | ❌ loop em 45 s | PARCIAL |
+| automática 2 | ✅ 170 s | ❌ repetiu o mesmo comando por 45 s | PARCIAL |
 
 2/3 aprovações. O modo de falha que sobrou: comando com **saída vazia** (`gradlew build -q`) não é
 lido como sucesso, então o modelo repete. Mitigação no prompt, não no modelo.
@@ -97,7 +97,7 @@ declarou perda zero; se faltar ~1,5 GB, IQ3_XXS é a descida honesta.
 
 ## 2.3 Reprovados — o que evitar (e por quê)
 
-Este é o trecho que mais economiza tempo alheio. Todos abaixo rodaram as **mesmas** provas, com os
+Costuma ser o trecho mais útil do doc para quem vai testar um modelo novo. Todos abaixo rodaram as **mesmas** provas, com os
 mesmos testes ocultos, no mesmo hardware. Quase nenhum falhou por velocidade: falhou por
 **comportamento de agente**.
 
@@ -108,13 +108,13 @@ mesmos testes ocultos, no mesmo hardware. Quase nenhum falhou por velocidade: fa
 | Hermes-4-14B | 59 t/s ✅ | **narra o plano e encerra o turno sem chamar nenhuma ferramenta** (0 tool calls, 15–20 s). Tool calling isolado funciona | REPROVADO |
 | Ministral-3-8B | 56,5 t/s ✅ | 756 s, 126 tool calls, **0 commits**: não fez o TypeScript rodar e mexeu no `tsconfig`/`package.json` | REPROVADO |
 | MiMo-V2.6-9B | 57–59 t/s ✅ | 2/4 tarefas commitadas, depois laço infinito de `pnpm test`/`typecheck` até o timeout de 30 min | REPROVADO |
-| gpt-oss-20b | 107 t/s ✅ | effort `medium` **recusou** ("I can't comply") em 10 s; `low` escreveu 10 arquivos sem nunca usar o shell | REPROVADO |
+| gpt-oss-20b | 107 t/s ✅ | effort `medium` recusou a tarefa ("I can't comply") em 10 s; `low` escreveu 10 arquivos sem usar o shell | REPROVADO |
 | GLM-4.7-Flash 30B-A3B | 38 t/s ✅ | timeout 30 min, preso na mesma tarefa HTTP — 2ª reprovação seguida | REPROVADO |
 | Qwen3-Coder-30B | 35 t/s ✅ | 4/4 commits em 1161 s **mas o aceite falhou** (GET devolvia 404 no lugar de 200) e não marcou as tarefas | REPROVADO |
 | Nemotron-Cascade-2 | 55 t/s ✅ | instruct em loop (61× executar JS no lugar do shell); think parou sozinho só com a T1 | REPROVADO |
-| Qwen-AgentWorld-35B | — | api ✅ 4/4; no spring-ai escreveu 8192 tokens de análise **sem chamar ferramenta** e estourou a saída. No thinking: 8/8 tarefas mas aceite 0/22 (contrato de tipos errado) | REPROVADO |
+| Qwen-AgentWorld-35B | — | api ✅ 4/4; no spring-ai escreveu 8192 tokens de análise **sem chamar ferramenta** e atingiu o teto de saída. No thinking: 8/8 tarefas mas aceite 0/22 (contrato de tipos errado) | REPROVADO |
 | Gemma 4 31B (denso) | **6,9 t/s** ❌ | 61 camadas/14,3 GiB não cabem inteiros na VRAM com ≥3 GB livres (47 camadas a 96k, 60 a 16k) | REPROVADO |
-| Gemma-4-26B-A4B QAT | 94–99 t/s ✅ | api ✅ (175 s); spring-ai ❌ instruct em loop 0/8, think 1/8 | PARCIAL (apagado) |
+| Gemma-4-26B-A4B QAT | 94–99 t/s ✅ | api ✅ (175 s); spring-ai ❌ instruct repetiu ações (0/8), think 1/8 | PARCIAL (apagado) |
 | Laguna-XS-2.1 | 41–43 t/s ✅ | api ✅; spring-ai ❌ timeout 60 min, 0/8 nas duas variantes | PARCIAL (apagado) |
 | Ornith-1.5-35B-A3B | 38–40 t/s ✅ | api ✅; spring-ai quase: 8/8 tarefas com 1 falha de aceite (instruct) / timeout com 7/8 commits (think) | PARCIAL (apagado) |
 
@@ -158,7 +158,7 @@ contra-intuitiva e medida aqui: **quant maior = mais qualidade com a MESMA VRAM*
 | Qwen3.8-Flash-Next Coder (experts podados) | `ISTA-DASLab/Qwen3.8-Flash-Next-GSQ-RCO-Coder-GGUF` |
 | Qwen3.8-27B (GSQ-RCO) | `ISTA-DASLab/Qwen3.8-27B-GSQ-RCO-GGUF` |
 | Swift 1.5 (fine-tune curto do Flash-Next) | `ukisai/Swift-1.5-Qwen3.8-Flash-Next-GSQ-RCO-GGUF` |
-| Swift 1.5 27B | `ukisai/…` (⚠️ confirme o nome exato antes de baixar — é o único que não checei nesta passada) |
+| Swift 1.5 27B | `ukisai/…` — confirme o nome exato antes de baixar; é o único daqui que não verifiquei nesta passada |
 | Muse Glimmer 30B · Qwen3.6-35B-A3B · Mistral Small 4 · Qwen3-Coder-Next · Devstral 2 | `unsloth/<modelo>-GGUF` (UD-*) |
 | Embedding (RAG) | `Qwen3-Embedding-0.6B` em Q8_0 |
 
@@ -169,7 +169,7 @@ pip install -U "huggingface_hub[cli]"
 mkdir -p ~/models/qwen3.8-flash-next/IQ2_XS && cd $_
 HF_TOKEN=... hf download ISTA-DASLab/Qwen3.8-Flash-Next-GSQ-RCO-GGUF \
   --include "IQ2_XS/*" --local-dir .
-# a chave só via variável de ambiente no comando; nunca em arquivo versionado
+# a chave só via variável de ambiente no comando, e não em arquivo versionado
 ```
 
 Licenças das weights são próprias (Qwen Community / Apache / Unsloth conforme o caso) — leia a

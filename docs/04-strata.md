@@ -66,23 +66,23 @@ Publicamos os nossos em [`config/strata/`](../config/strata). O essencial:
 }
 ```
 
-### Os quatro ajustes que a gente teve que fazer à mão
+### Os quatro ajustes que tivemos que fazer à mão
 
 1. **`--vram-reserve-mib 3072`** *(necessário se a placa também é a do seu desktop)*
    O padrão deixava ~700 MiB livres; o compositor pedia VRAM, o `amdgpu` movia memória de GPU para
-   RAM (GTT) e a tela congelava / o OOM killer matava o `plasmashell`. O upstream descreve o mesmo
+   RAM (GTT) e a tela congelava, ou o OOM killer encerrava o `plasmashell`. O upstream descreve o mesmo
    problema (#560, #516) e recomenda exatamente `--vram-reserve-mib 3072` em Linux desktop.
 
 2. **Bloco `sampling`** *(necessário — nos custou duas sessões em loop).*
    Sem esse bloco, e com um cliente que não manda temperatura (o OpenCode não manda), o engine fica
    em **greedy** e o modo reasoning entra em repetição: vimos o mesmo comando ser rodado 46× e 140×.
-   Depois de por `0.6 / 0.95 / 20 / min_p 0 / presence 1.5` (thinking) e `0.7 / 0.8 / 20 / presence
+   Depois de pôr `0.6 / 0.95 / 20 / min_p 0 / presence 1.5` (thinking) e `0.7 / 0.8 / 20 / presence
    1.5` (instruct): **zero loops em 288 chamadas**. Regra que ficou: *todo motor novo precisa de
-   sampling explícito; nunca confie no padrão.*
+   sampling explícito, em vez de depender do padrão.*
 
 3. **`--kv int8 --kv-resident 32768`** (streaming da KV). A KV mora na RAM e só a parte lida pela
    atenção fica na VRAM → sobra VRAM para experts. Custo ~13,7 KB de RAM por token de contexto
-   (~1,7 GB a 128k). Sem isso, a 256k o cache de experts encolhe e o decode despenca.
+   (~1,7 GB a 128k). Sem isso, a 256k o cache de experts encolhe e o decode cai bastante.
    Quer mais qualidade de KV? `--kv k8v4` (chave 8 bits, valor 4 bits rotacionado): 23% menos
    memória de KV com os mesmos needle tests.
 
@@ -122,7 +122,7 @@ config divergir. O alto (`high`, que no motor vira `xhigh`) é o modo de *planej
 ## 4.4 Ligar pelo llama-swap: o wrapper
 
 O llama-swap espera um processo filho que morra com SIGTERM. O servidor do Strata é Python que
-**dá spawn no engine** — matar o Python deixa o engine órfão segurando ~14 GB de VRAM. O wrapper resolve
+**dá spawn ao engine** — encerrar só o Python deixa o engine órfão, segurando ~14 GB de VRAM. O wrapper resolve
 com `setsid` + trap no grupo:
 
 ```bash
@@ -157,7 +157,7 @@ O Strata tem três chaves próprias para isso (além do `ttl` do llama-swap), to
 | Chave | Efeito |
 |---|---|
 | `"idle_unload_s": 600` | descarrega após 10 min sem pedido; o próximo pedido recarrega (segundos, se a RAM não foi usada) |
-| `"min_free_vram_mib": 11000` | só carrega se houver aquela VRAM livre; senão responde **503** "GPU em uso" em vez de pisar no jogo |
+| `"min_free_vram_mib": 11000` | só carrega se houver aquela VRAM livre; senão responde **503** "GPU em uso", em vez de invadir o espaço do jogo |
 | `"before_load": "cmd"` | roda um comando antes de carregar (ex.: descarregar o modelo de outro servidor) |
 
 `POST /unload` e `POST /load` (com `Content-Type: application/json`) também funcionam. E o
@@ -192,7 +192,7 @@ enxerga o contexto inteiro do perfil. Num perfil 256k, dois slots = duas convers
 
 3. Confirme a VRAM livre **antes** de recarregar: cada slot custa ~0,95 GiB de VRAM e mais a KV
    pinada em RAM (~3 GiB por slot a 256k com `--kv-resident 32768`).
-4. Recarregue o perfil. Com `-watch-config`, salvar o `config.yaml` do llama-swap já derruba e sobe o
+4. Recarregue o perfil. Com `-watch-config`, salvar o `config.yaml` do llama-swap já reinicia o
    backend; o JSON do Strata é lido nesse momento. Se quiser forçar sem editar nada:
    `curl -s localhost:8082/unload`.
 5. Aponte os **dois clientes para o mesmo modelo** (`llama-cpp/strata-swift-flash-next-256k`). Não
@@ -230,7 +230,7 @@ Swift, e preferimos publicar como exemplo em vez de um perfil que não está em 
 | VRAM por slot | ~0,95 GiB (com 2 slots: 9,88 GiB livres no fim do load) |
 | RAM pinada por slot | ~3 GiB (KV `int8` com `--kv-resident 32768`) |
 | Duas conversas simultâneas | uma de ~145k e outra de ~198k de tokens, ~45 t/s **somadas**, RAM 51/55 GB sem swap |
-| MTP em batch | **desligado** — slot em batch decodifica 1 token por janela; sozinho ele volta ao caminho solo |
+| MTP em batch | **desligado** — em batch o slot decodifica 1 token por janela; sozinho, volta ao caminho com MTP |
 
 **Por que 2 e não 5:** tentamos 5. A VRAM cabia (4,74 GiB), mas o load levou a RAM a 54/54 GB e a
 máquina entrou em thrash. Voltou para 2, que aguenta duas conversas de ~200k com folga. Como conta

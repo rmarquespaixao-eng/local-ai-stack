@@ -6,8 +6,8 @@ backend certo quando alguém pede, descarrega quando fica ocioso.
 
 - Projeto: https://github.com/mostlygeek/llama-swap (MIT, binário único em Go)
 - Versão que usamos: **v260** (`fcefa7b`)
-- Por que não um `llama-server` fixo: com 16 GB de VRAM só cabe **um** modelo por vez. Sem trocar
-  automaticamente, cada troca de modelo seria "matar processo, editar script, reza".
+- Por que não um `llama-server` fixo: com 16 GB de VRAM só cabe **um** modelo por vez. Sem essa troca
+  automática, cada troca de modelo viraria "parar processo, editar script, recomeçar".
 
 ## 3.1 Instalar
 
@@ -58,7 +58,7 @@ llama-swap direto.
 ## 3.3 Estrutura do config
 
 ```yaml
-healthCheckTimeout: 600   # MoE grande leva 35–90 s para carregar; o padrão derruba o load
+healthCheckTimeout: 600   # MoE grande leva 35–90 s para carregar; com o padrão o wait expira no meio
 startPort: 10001          # cada backend recebe uma porta livre a partir daqui
 
 macros:                   # substituição literal de texto, SEM shell, SEM `~`
@@ -87,7 +87,7 @@ Macros que usamos e **por que existem** (todos no `config/llama-swap.yaml`):
 | `cacheopt` | `--cache-reuse 256 --ctx-checkpoints 32 --metrics` | reuso de prefixo + rollback de cauda + Prometheus |
 | `budget` | `--reasoning-budget 4096 --reasoning-budget-message "..."` | teto de raciocínio **com** frase que faz o modelo fechar o thinking sozinho (sem corte seco) |
 | `qtpl` | chat template `.jinja` fora do GGUF | quando o template embutido tem bug ou você quer effort control |
-| `sampling_*` | os valores oficiais por família/modo | nunca depender do default do motor — ver [docs/06](06-tuning.md) |
+| `sampling_*` | os valores oficiais por família/modo | evitar depender do default do motor — ver [docs/06](06-tuning.md) |
 
 ## 3.4 Os knobs que realmente importam
 
@@ -95,10 +95,10 @@ Macros que usamos e **por que existem** (todos no `config/llama-swap.yaml`):
 |---|---|---|
 | `--parallel` / `parallel` | quantas sessões o backend atende ao mesmo tempo | no llama.cpp o `-c` é **dividido** entre os slots; no Strata cada slot leva o contexto inteiro — ver [docs/04 §4.6](04-strata.md) |
 | `ttl: 600` | descarrega após 600 s ocioso | devolve ~40 GB de RAM; sem isso, o segundo modelo grande não entra |
-| `ttl: -1` / `ttl: 0` | ⚠️ **-1 não significa "nunca"**: significa *herdar o TTL global*. Quem significa "nunca" é **0**. Como não definimos `ttl` global (e o global padrão é 0), `-1` cai em "nunca" por acaso — se você poner um `ttl:` global, todos os perfis `-1` passam a descarregar | deixar o principal em `ttl: 0` explícito se você mexer no global |
-| `healthCheckTimeout` | espera o backend responder no health check | 600 s para MoE; valor baixo = llama-swap mata o load no meio e você vê "failed to start" |
+| `ttl: -1` / `ttl: 0` | ⚠️ **-1 não significa "nunca descarrega"** — significa *herdar o TTL global*. O valor "nunca" é **0**. Como não definimos `ttl` global (e o global padrão é 0), `-1` cai em "nunca" por acaso — se você poner um `ttl:` global, todos os perfis `-1` passam a descarregar | deixar o principal em `ttl: 0` explícito se você mexer no global |
+| `healthCheckTimeout` | espera o backend responder no health check | 600 s para MoE; valor baixo faz o llama-swap desistir do load no meio e você vê "failed to start" |
 | `checkEndpoint: none` | não faz health check | use em perfil "proxy" (aponta para um servidor já rodando); o llama-swap **não** tem perfil proxy puro, então a gente usa `cmd: sleep infinity` |
-| `-watch-config` | recarrega ao salvar | ótimo, e perigoso **durante um teste** (derruba stream em uso) |
+| `-watch-config` | recarrega ao salvar | ótimo, e inconveniente durante um teste (interrompe o stream em uso) |
 | `filterGguf: false` | não tenta ler metadados do GGUF | necessário quando o arquivo ainda não existe ou o backend não conhece a arquitetura |
 
 ## 3.5 Endpoints que usamos no dia a dia

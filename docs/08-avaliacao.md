@@ -42,32 +42,32 @@ e você acha que o modelo local está trocando de modelo sozinho).
 
 ## 8.3 Watchdog: as 4 formas de falhar de um agente local
 
-Rodar sem vigia significa descobrir de manhã que o run morreu às 23h. Todo run precisa de regras
-explícitas de parada:
+Sem um vigia, o run pode ter parado às 23h e você só descobre de manhã. Vale ter regras explícitas de
+parada:
 
 | Modo de falha | Critério que usamos | O que significa |
 |---|---|---|
 | `loop` | 4 chamadas **idênticas** seguidas | sampling agressivo demais, ou greedy em reasoning |
 | `error_loop` | o **mesmo erro** 6× | modelo não consegue autocorrigir; em Java, quase sempre contrato de tipos |
-| `no_action` | 10 min sem nenhum `write`/`edit` | narrou o plano e parou (visto no Hermes e no LFM) |
+| `no_action` | 10 min sem nenhum `write`/`edit` | narrou o plano e encerrou o turno (visto no Hermes e no LFM) |
 | `no_progress` | 15 min sem commit | mexendo sem produzir |
 | `timeout` | api-tarefas 1800 s · spring-ai 3600 s | teto do fixture |
 
-E o mais importante da categoria **não é o modelo**: MCP remoto travando a inicialização, swap de
-modelo no meio do teste, ou a GPU sem folga. Se o watchdog disparar, confira o hardware/isolamento
-antes de culpar o candidato ([docs/07](07-problemas.md#76-método-de-medição-os-erros-que-quase-nos-fizeram-decidir-errado)).
+E boa parte dos disparos não vem do modelo: MCP remoto travando a inicialização, troca de modelo no
+meio do teste, ou GPU sem folga. Antes de atribuir o resultado ao candidato, confira hardware e
+isolamento ([docs/07](07-problemas.md#76-método-de-medição-os-erros-que-quase-nos-fizeram-decidir-errado)).
 
 ## 8.4 Isolamento e regras do protocolo
 
 1. **Config isolado por run**: cópia do `opencode.json` com todos os MCPs desligados via
    `XDG_CONFIG_HOME`. Sem isso, um MCP lento contamina o tempo e o veredito.
-2. Evite editar o config do llama-swap durante a bateria (`-watch-config` derruba o stream em uso).
+2. Evite editar o config do llama-swap durante a bateria (`-watch-config` interrompe o stream em uso).
 3. **Duas rodadas** no mínimo para promover. Nosso principal aprovou 2 de 3.
 4. Promova com evidência de agente, não com benchmark de texto: HumanEval não mede o eixo multi-arquivo.
 5. **Roda noturna com parada automática** em sinal de hardware (MCE no journal, timeout de GPU, VRAM
-   livre abaixo do mínimo). Sem isso a fila continua rodando e de manhã você tem dados sem valor.
+   livre abaixo do mínimo). Sem isso a fila continua de madrugada e os dados da manhã valem pouco.
 6. **Reprovado: registre e arquive.** Mover para `REPROVADOS/` + comentar o perfil com
-   `# [REPROVADO <data> — <motivo>]`. Apagar o GGUF só quando alguém mandar.
+   `# [REPROVADO <data> — <motivo>]`. Apague o GGUF só por decisão explícita.
 
 ## 8.5 Como montar fixtures equivalentes (sem os nossos)
 

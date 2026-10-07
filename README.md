@@ -91,13 +91,13 @@ curl -s http://127.0.0.1:8082/v1/models
 
 Detalhes de cada passo, com as flags reais e os números medidos, estão nos documentos acima.
 
-## O que este repo **não** é
+## O que este repo não é
 
 - Não é um fork nem um wrapper dos motores: llama.cpp, Strata, llama-swap e OpenCode são projetos
   de terceiros (links em cada doc). Nada aqui foi compilado ou escrito por nós além das configs.
 - Não inclui os *fixtures* de benchmark (`api-tarefas`, `agente-spring-ai`, `planejar-*`) nem o
   harness `local-exec`: são repositórios de teste do nosso fluxo privado. Em
-  [docs/08-avaliacao.md](docs/08-avaliacao.md) está a **receita completa** para montar equivalentes.
+  [docs/08-avaliacao.md](docs/08-avaliacao.md) está a receita completa para montar equivalentes.
 - Não é recomendação de compra. Os números são do nosso hardware; o mesmo GGUF em outra placa se
   comporta de outro jeito (em [docs/01](docs/01-maquina.md) dizemos como medir o seu caso).
 

@@ -40,7 +40,7 @@ aqui são do OpenCode, mas as armadilhas de contexto/sampling valem para todos.
 - `limit.context` deve bater com o `-c`/`--max-context` real (confirme em `/props`). Errar para cima
   = `exceed_context_size_error` no meio da sessão; errar para baixo = você joga contexto fora.
 
-## 5.2 A armadilha que custou um dia: `variants` é objeto, não array
+## 5.2 Uma armadilha que nos custou um dia: `variants` é objeto, não array
 
 No OpenCode **v2**, `variants` é um **objeto** (`{"id": {settings}}`). Quem vem do v1 com array
 (`[{id, settings}]`) encontra um defeito inesperado: como o provider usa `additionalProperties: false`,
@@ -122,7 +122,7 @@ Consequências práticas:
 
 1. **Prefix cache é o que te atende.** Ele depende de o prefixo não mudar: `AGENTS.md`, tools,
    histórico. Mexer na ordem das tools ou no system prompt entre chamadas = recomeçar o prefill.
-2. **Cache semântico (por similaridade da última mensagem) não serve para agente.** A chave seria a
+2. **Cache semântico (por similaridade da última mensagem) não funciona bem em agente.** A chave seria a
    mesma para 10–49 passos consecutivos do mesmo loop — serviria resposta velha e quebraria o
    trabalho. Serve para FAQ/docs de corpus fixo, não para isso.
 3. **Prompt aberto é o que mais atrapalha um modelo local.** Ele tende a explorar sem parar em vez de
@@ -136,9 +136,9 @@ Consequências práticas:
    sozinho uma resposta cortada (o "continue" é seu). Usamos 32768 em `strata-flash-next`,
    `strata-flash-next-iq3xxs`, `strata-swift-flash-next*` e no 256k; os demais ficam em 8192.
 
-## 5.7 MCPs: o vazamento que culpava o modelo
+## 5.7 MCPs: a lentidão que parecia ser do modelo
 
-MCP remoto lento travava o `opencode run` por ~10 min na inicialização (timeout de SSE do servidor
+Um MCP remoto lento parava o `opencode run` por ~10 min na inicialização (timeout de SSE do servidor
 remoto) — e o watchdog do harness atribuía o problema ao **modelo**. E com o MCP de benchmark ligado
 (31 tools a mais), a sessão ficava lenta e poluída.
 

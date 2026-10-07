@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Sobe o servidor do Strata para o llama-swap (a porta vem do llama-swap) e, ao receber TERM/INT,
-# derruba o GRUPO inteiro (servidor Python + motor `strata`). Um motor órfão segura ~14 GB de VRAM.
+# encerra o grupo inteiro (servidor Python + motor `strata`). Um motor órfão seguraria ~14 GB de VRAM.
 # uso: strata-swap.sh <config.json> <porta>
 set -u
 STRATA_HOME="${STRATA_HOME:-$HOME/llm/Strata}"

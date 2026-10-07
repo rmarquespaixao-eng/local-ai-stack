@@ -1,4 +1,4 @@
-# 7. Problemas e soluções (defeitos reais que encontramos)
+# 7. Problemas e soluções (o que encontramos, com causa e correção)
 
 Se algo está quebrado, procure aqui antes de reiniciar tudo. Organizado por categoria; cada linha é um
 caso que aconteceu nesta stack, com a causa e o que resolvemos.
@@ -10,8 +10,8 @@ caso que aconteceu nesta stack, com a causa e o que resolvemos.
 | Tela congela 2–10 s sob carga de IA | VRAM livre ≤ 1 GiB: o compositor pede buffer, o `amdgpu` move memória de GPU p/ GTT e falha (`page allocation failure` / `Failed to pin framebuffer -12`) | llama.cpp `--fit on --fit-target 3072`; Strata `--vram-reserve-mib 3072`. Não é ajuste de gosto: com 1 GiB de folga congelava, com 3 GiB parou |
 | `--fit on` aborta no load | `-ngl 99` + `--fit` e o modelo não cabe: llama.cpp **aborta**, não reduz contexto | baixar quant/camadas, ou `-ngl` parcial + `--n-cpu-moe` |
 | Hangs de vídeo (MES/SDMA timeout, reset falha `-110`) em carga **leve** | undervolt de `-90/-70 mV` no perfil LACT que a placa não sustenta | zerar `voltage_offset` nos perfis; se voltar, subir firmware MES / kernel LTS. (Zeramos e parou) |
-| Strata carregado deixa o PC inteiro travado | padrão do motor reservava ~700 MiB de VRAM | `--vram-reserve-mib 3072` (o upstream hoje recomenda o mesmo em Linux desktop) |
-| Engine Strata continua rodando depois de "parar" o modelo | o SIGTERM matou o Python, não o engine filho → ~14 GB de VRAM ficam órfãos | wrapper com `setsid` + `trap` que mata o **grupo** ([docs/04](04-strata.md)) |
+| Strata carregado deixa o PC parado | padrão do motor reservava ~700 MiB de VRAM | `--vram-reserve-mib 3072` (o upstream hoje recomenda o mesmo em Linux desktop) |
+| Engine Strata continua rodando depois de "parar" o modelo | o SIGTERM encerrou o Python, não o engine filho → ~14 GB de VRAM ficam órfãos | wrapper com `setsid` + `trap` que mata o **grupo** ([docs/04](04-strata.md)) |
 | Decode cai de 102 para 13 t/s sem nenhum erro | cache de experts maior que a VRAM: a alocação "cabe" em sysmem e só a velocidade denuncia | deixar `--expert-cache auto`, que re-confere depois de escrever os slots |
 
 ## 7.2 RAM, swap e armazenamento
@@ -20,9 +20,9 @@ caso que aconteceu nesta stack, com a causa e o que resolvemos.
 |---|---|---|
 | Modelo a **1,3–1,6 t/s** "funcionando" | 59 GB de pesos em 54 GB de RAM: page eviction para o NVMe a cada token | regra `RAM ≥ pesos_residentes + folga`. Reavaliar só com mais RAM. E verificar residência com `fincore` — o log não avisa |
 | "A quant X é ruidosa/inconsistente" | o arquivo (71 GB) é maior que a RAM; a variação era page cache, não o modelo | medir residência antes de culpar a quant |
-| Memória parece saudável mas trava no load | zram + `vm.swappiness=150` dá **falso positivo** de swap funcionando | olhar `VmSwap` do processo e o PSI, não o `free` |
+| Memória parece saudável, mas o load trava | zram + `vm.swappiness=150` dá **falso positivo** de swap funcionando | olhar `VmSwap` do processo e o PSI, não o `free` |
 | `mlock` falha silenciosa (load lento) | `ulimit -l` padrão = 8 MiB | `ulimit -l unlimited` no `ExecStart` (o serviço tem isso) |
-| `/tmp` sumiu e perdi os scripts da fila | `/tmp` é apagado no reboot | scripts de longo prazo sobrevivem em `~`, nunca no scratchpad |
+| `/tmp` sumiu e perdi os scripts da fila | `/tmp` é apagado no reboot | scripts de longo prazo ficam fora do scratchpad |
 | Pack corrompido (checksum) no meio de download grande | incidente transitório de `btrfs csum` | `btrfs scrub start` (precisa de sudo); reconstruir o pack |
 | Download de 63 GB recomeçou do zero | troquei o token de auth **no meio** do download | não mexer em credencial com download rodando; conferir parciais órfãos |
 
@@ -43,25 +43,25 @@ caso que aconteceu nesta stack, com a causa e o que resolvemos.
 
 | Sintoma | Causa raiz | Solução |
 |---|---|---|
-| Modelo demora e o llama-swap mata no meio do load | `healthCheckTimeout` padrão curto p/ MoE grande | `healthCheckTimeout: 600` no topo do config |
-| O modelo troca sozinho no meio de um teste | os próprios testes do aceite chamavam `:8082` → cada teste pedia um modelo diferente e o swap derrubava a sessão em uso | apontar os testes para o backend direto, ou fixar `ttl: -1` durante a bateria. Diagnóstico: cruzar o journal (`Health`/`Unload`) com o horário do `gradlew test` |
-| Editar config derruba stream em uso | `-watch-config` recarrega na hora | não editar durante benchmark; se editar, saber que a rodada é perdida |
+| O modelo demora e o llama-swap desiste do load | `healthCheckTimeout` padrão curto p/ MoE grande | `healthCheckTimeout: 600` no topo do config |
+| O modelo troca sozinho no meio de um teste | os próprios testes do aceite chamavam `:8082` → cada teste pedia um modelo diferente e o swap interrompia a sessão em uso | apontar os testes para o backend direto, ou fixar `ttl: 0` durante a bateria. Diagnóstico: cruzar o journal (`Health`/`Unload`) com o horário do `gradlew test` |
+| Editar config interrompe o stream em uso | `-watch-config` recarrega na hora | evite editar durante benchmark; se editar, a rodada em curso é perdida |
 | Perfil "proxy" para um servidor já rodando | o llama-swap não tem perfil proxy-only | `cmd: sleep infinity` + `checkEndpoint: none` (funciona; o caminho mais limpo para containers é `cmdStop`) |
 | `/v1/models` não bate com o config | cache/UI enganosa | `curl localhost:8082/v1/models` cru |
-| Derrubei o modelo, reiniciei o serviço e ele voltou | o llama-swap **restaura o que estava carregado** no boot | derrube (`/unload`) antes de reiniciar o daemon |
+| Descarreguei o modelo, reiniciei o serviço e ele voltou | o llama-swap **restaura o que estava carregado** no boot | descarregue (`/unload`) antes de reiniciar o daemon |
 | O perfil "pinado" volta sozinho depois de cada `/unload` | clientes com conexão aberta em `:8082` (app Java, Chrome): o llama-swap se recupera da desconexão re-emindo o stream e isso dispara o load | `ss -tnp \| grep 8082` para achar o cliente; fechar o cliente, não lutar com o `ttl` |
-| `ttl: -1` descarregou o principal | `-1` **herda o TTL global** (não é "nunca"; "nunca" é `0`) | `ttl: 0` explícito no perfil crítico |
+| `ttl: -1` descarregou o principal | `-1` **herda o TTL global** (não é "nunca descarrega"; esse é o `0`) | `ttl: 0` explícito no perfil crítico |
 
 ## 7.5 Agente (OpenCode)
 
 | Sintoma | Causa raiz | Solução |
 |---|---|---|
 | Todos os modelos locais somem e dá `Model unavailable` | no v2 `variants` é **objeto**; array do v1 + `additionalProperties:false` descarta o **provider inteiro** | array → objeto + `opencode reload` (**restart não resolve**). Diagnóstico: `opencode api GET /api/config` e o log "configuration normalization diagnostic kind=invalid" |
-| `opencode run` travado ~9,5 min sem fazer nada | MCP remoto (SSE) com timeout bloqueando a inicialização | rodar bateria com `XDG_CONFIG_HOME` isolado e **todos os MCPs off** (config de projeto não desliga MCP global!) |
+| `opencode run` parado ~9,5 min sem fazer nada | MCP remoto (SSE) com timeout bloqueando a inicialização | rodar bateria com `XDG_CONFIG_HOME` isolado e **todos os MCPs off** (config de projeto não desliga MCP global!) |
 | Sessão lenta e com contexto poluído | 31 tools de um MCP de benchmark no contexto | desligar MCP que não é do caso; 93% das chamadas são meio-de-loop, cada tool custa caro |
 | TUI congela depois de mexer no config | `opencode service restart` com TUI aberta | fechar a TUI antes de reiniciar o serviço |
 | `opencode -m` não existe | na TUI v2 não há `-m` | `opencode.json` de projeto + `.git/info/exclude`, ou `/models` |
-| `exceed_context_size_error` no meio da sessão | llama.cpp **não tem** janela deslizante: estourou, erro | `limit.context` = `-c` real; o OpenCode compacta antes (a ~118k do nosso 128k), mas o erro ainda aparece se o cliente não compactar |
+| `exceed_context_size_error` no meio da sessão | llama.cpp **não tem** janela deslizante: passou do limite, erro | `limit.context` = `-c` real; o OpenCode compacta antes (a ~118k do nosso 128k), mas o erro ainda aparece se o cliente não compactar |
 | `opencode mcp list` vazio | bug do v2 (mente) | conferir o `opencode.json` e `/api/config`, não o `mcp list` |
 | Resposta do agente cortada no meio ("Output token limit reached") | `limit.output` do cliente, **não** é contexto nem compactação | subir para 32768 nos perfis de trabalho/planejamento ([docs/05](05-opencode.md)) |
 | Integração ACP na IDE: "no session table" | o registry da JetBrains fixa o **OpenCode v1.18** contra o `opencode.db` do **v2** (schema `session_v2`) | registrar o binário v2 como agente custom (`acp.json`) e reiniciar a IDE |
@@ -77,7 +77,7 @@ caso que aconteceu nesta stack, com a causa e o que resolvemos.
 | "A quant IQ3_XXS é instável" | modelo > RAM (page cache). Ver 7.2 |
 | "Veredito APROVADO" com 1 run | 2 de 3 runs aprovaram o mesmo modelo — rodar pelo menos duas antes de promover |
 
-## 7.7 Hardware/SO que não é culpa da stack
+## 7.7 Hardware/SO — quando não é nada da stack
 
 | Sintoma | Diagnóstico | Ação |
 |---|---|---|
@@ -87,4 +87,4 @@ caso que aconteceu nesta stack, com a causa e o que resolvemos.
 
 > **Regra de ouro de diagnóstico:** não atribua ao modelo o que pode ser I/O, memória, config de motor ou
 > ferramenta. As "reprovações de modelo" que depois se explicaram por outro motivo (greedy do motor, MCP
-> travando, page eviction) estavam erradas — e custaram dias.
+> travando, page eviction) estavam erradas, e cada uma custou dias de fila.

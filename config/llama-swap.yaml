@@ -5,18 +5,18 @@
 #   o llama-swap faz substituição literal de macro, sem shell. Valide assim:
 #     llama-swap -config config.yaml -validate
 #   Com -watch-config o config recarrega ao salvar — evite editar durante um teste em andamento
-#   (derruba o stream: "stream ended without finish_reason").
+#   (interrompe o stream: "stream ended without finish_reason").
 #
 # POR QUE CADA COISA ESTÁ AQUI
-#   healthCheckTimeout: 600  MoE grande leva 35-90 s para carregar; o padrão derruba o load.
+#   healthCheckTimeout: 600  MoE grande leva 35-90 s para carregar; com o padrão o wait expira no meio.
 #   --fit on --fit-target 3072  deixa 3 GiB de VRAM para o desktop. Com folga de 1 GiB a tela
 #     congelou (amdgpu: page allocation failure em bo_pin). RX 9070 XT: 16.302 MiB totais.
 #   --parallel 1  o llama.cpp DIVIDE o -c entre slots: com --parallel 2 e -c 128000, cada agente
 #     enxerga 64k e morre com finish_reason=length. Um slot não custa VRAM extra.
 #   --ctx-checkpoints 32  não gasta VRAM (snapshots da KV vão para a RAM do host) e evita
 #     reprocessar o contexto todo num rollback de cauda em modelos híbridos (0,55 s vs 2,39 s).
-#   sampling_* nos perfis  valores OFICIAIS da model card, passados explícitos. Nunca dependa do
-#     default do motor: greedy em modo reasoning = loop de repetição (ver docs/06 e docs/07).
+#   sampling_* nos perfis  valores OFICIAIS da model card, passados explícitos. Evite o default do
+#     motor: greedy em modo reasoning costuma virar loop de repetição (ver docs/06 e docs/07).
 #   ttl: 600  devolve a RAM quando o modelo fica ocioso; só o principal usa ttl: -1 (~50 GB).
 #   Perfis unificados (2026-10-05)  um perfil por modelo; o raciocínio é escolhido pelo cliente
 #     (`reasoning_effort`: none|low|medium|xhigh) em vez de um perfil -instruct e um -think.

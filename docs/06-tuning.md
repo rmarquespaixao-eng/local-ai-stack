@@ -59,7 +59,7 @@ Para RX 9070 XT 16 GB (RDNA4, Vulkan, não faminta de banda), o ótimo medido:
 
 | Knob | Valor | Motivo |
 |---|---|---|
-| `--spec-draft-n-max` | **2** | varremos: n=4 derruba (59,8 → 50 t/s) |
+| `--spec-draft-n-max` | **2** | varremos: n=4 perde (59,8 → 50 t/s) |
 | `--spec-draft-p-min` | **0** (sem gate) | regra 2; **0.6 é o fallback** só se a aceitação cair < 0.5 (contexto longo de agente) |
 | `--spec-draft-n-min` | 0 | não corta cedo |
 | KV do draft | `-ctkd q8_0 -ctvd q8_0` | poupa VRAM sem custo de qualidade |
@@ -85,7 +85,7 @@ llama-fit-params --model arquivo.gguf -fitp on -c 131072 -ctk q8_0 -ngl 99 --bac
 # imprime: pesos | KV | compute por backend, sem inferir. Calibramos ±2% contra rocm-smi real.
 ```
 
-Armadilhas medidas (cada uma queimou tempo aqui):
+Armadilhas medidas (cada uma nos custou tempo):
 
 | Armadilha | O que observamos |
 |---|---|
@@ -101,7 +101,7 @@ Armadilhas medidas (cada uma queimou tempo aqui):
 
 - Default do `--reasoning-budget` é **−1 (sem teto)**. Modelos Qwen3.5/3.6 chegam a **100k+ tokens**
   de raciocínio solto. Sem teto, uma pergunta simples come a janela inteira.
-- **Qwen (oficial):** nunca abaixo de 1024.
+- **Qwen (oficial):** não abaixo de 1024.
 - Receita que usamos para agente: `--reasoning-budget 4096` **+**
   `--reasoning-budget-message "I have thought long enough -- let me produce the final answer now."`
   — o teto vira segurança e a mensagem faz o modelo **fechar o raciocínio sozinho**, sem corte seco.

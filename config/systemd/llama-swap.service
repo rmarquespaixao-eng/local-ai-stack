@@ -4,12 +4,12 @@ After=network.target
 
 [Service]
 # ulimit -l unlimited: necessário para --load-mode mmap+mlock e para os experts pinados do Strata.
-# Com o memlock padrão (8 MiB) o pinnamento falha em silêncio e o desempenho despenca.
+# Com o memlock padrão (8 MiB) o pinnamento falha em silêncio e o desempenho cai.
 ExecStart=/bin/sh -c 'ulimit -l unlimited 2>/dev/null; exec %h/llama-engines/llama-swap/llama-swap -config %h/llama-engines/llama-swap/config.yaml -watch-config -listen 127.0.0.1:8082'
 Restart=on-failure
 RestartSec=3
-# Se colocar o Strata numa unit própria, limite memória com MemoryMax — NUNCA MemoryHigh: o
-# MemoryHigh conta o page cache que o --mmap-experts lê, e um prompt grande trava em pread.
+# Se colocar o Strata numa unit própria, limite memória com MemoryMax, e não com MemoryHigh: o
+# MemoryHigh conta o page cache que o --mmap-experts lê, e um prompt grande fica parado em pread.
 
 [Install]
 WantedBy=default.target
