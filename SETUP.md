@@ -19,8 +19,8 @@ baixa, 12 GB do 27B).
 # GPU, VRAM total e livre
 cat /sys/class/drm/card*/device/mem_info_vram_total /sys/class/drm/card*/device/mem_info_vram_used
 free -g | head -2                 # RAM utilizável
-lscpu | grep -E 'Model name|Flags' | head -2 | grep -o avx2   # o engine pronto do Strata exige AVX2
-df -h ~ /mnt/* 2>/dev/null | awk '$4 ~ /[0-9]{3}G|[0-9]\.[0-9]T/ {print}'   # 140 GB livres em algum lugar
+grep -m1 -o avx2 /proc/cpuinfo                     # o engine pronto do Strata exige AVX2
+df -h --output=target,size,freespace ~ /mnt/* 2>/dev/null | tail -n +2   # 140 GB livres em algum lugar
 
 # driver AMD: basta o amdgpu do kernel (não instale ROCm à mão, o setup do Strata resolve isso)
 ls /dev/kfd /dev/dri
