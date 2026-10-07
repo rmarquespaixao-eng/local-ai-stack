@@ -68,12 +68,12 @@ Publicamos os nossos em [`config/strata/`](../config/strata). O essencial:
 
 ### Os quatro ajustes que a gente teve que fazer à mão
 
-1. **`--vram-reserve-mib 3072`** *(obrigatório se a placa também é a do seu desktop)*
+1. **`--vram-reserve-mib 3072`** *(necessário se a placa também é a do seu desktop)*
    O padrão deixava ~700 MiB livres; o compositor pedia VRAM, o `amdgpu` movia memória de GPU para
    RAM (GTT) e a tela congelava / o OOM killer matava o `plasmashell`. O upstream descreve o mesmo
    problema (#560, #516) e recomenda exatamente `--vram-reserve-mib 3072` em Linux desktop.
 
-2. **Bloco `sampling`** *(obrigatório — nos custou duas sessões em loop).*
+2. **Bloco `sampling`** *(necessário — nos custou duas sessões em loop).*
    Sem esse bloco, e com um cliente que não manda temperatura (o OpenCode não manda), o engine fica
    em **greedy** e o modo reasoning entra em repetição: vimos o mesmo comando ser rodado 46× e 140×.
    Depois de por `0.6 / 0.95 / 20 / min_p 0 / presence 1.5` (thinking) e `0.7 / 0.8 / 20 / presence
@@ -86,9 +86,9 @@ Publicamos os nossos em [`config/strata/`](../config/strata). O essencial:
    Quer mais qualidade de KV? `--kv k8v4` (chave 8 bits, valor 4 bits rotacionado): 23% menos
    memória de KV com os mesmos needle tests.
 
-4. **`--expert-cache auto`** — não fixe. O `auto` dimensiona e **re-confere** depois que os slots
-   são escritos; um cache maior que a VRAM disponível não falha, só vira 7× mais lento (está
-   documentado no upstream com números). Deixe o `auto` decidir e ajuste a reserva, não o cache.
+4. **`--expert-cache auto`** — deixe sem valor fixo. O `auto` dimensiona e re-confere depois que os
+   slots são escritos; um cache maior que a VRAM disponível não falha, só fica ~7× mais lento (números no
+   upstream). Ajuste a reserva, não o cache.
 
 ### Bônus que vale muito no nosso chip
 
@@ -163,48 +163,96 @@ O Strata tem três chaves próprias para isso (além do `ttl` do llama-swap), to
 `POST /unload` e `POST /load` (com `Content-Type: application/json`) também funcionam. E o
 [`scripts/ia.sh`](../scripts/ia.sh) faz o "desliga tudo para ir jogar" de uma vez.
 
-> **Se você usar unit systemd para o Strata:** limite memória com `MemoryMax`, **nunca**
-> `MemoryHigh` — o `MemoryHigh` conta o page cache que o `--mmap-experts` lê, e um prompt de 16k
-> ficou 8 min parado em `pread` nesse cenário (relato documentado no upstream, #750/#920 também
-> discutem os timeouts de verify por suspensão de fila KFD sob reclaim).
+> **Se você usar uma unit systemd para o Strata:** limite memória com `MemoryMax` em vez de
+> `MemoryHigh`. O `MemoryHigh` conta o page cache que o `--mmap-experts` lê, e nesse cenário um
+> prompt de 16k ficou ~8 min parado em `pread` (relato documentado no upstream; #750/#920 também
+> discutem timeouts de verify por suspensão de fila KFD sob reclaim).
 
-## 4.6 Batching: duas conversas grandes ao mesmo tempo
+## 4.6 Rodar duas conversas grandes em paralelo (batching)
 
-Diferente do llama.cpp, aqui o batching **não divide o contexto**: cada slot leva o contexto inteiro.
-No JSON do servidor:
+**O que é:** a chave `parallel` no JSON do servidor vira `--batch N` no engine (faixa 2–8; também
+aceita `--slots`). Diferente do llama.cpp, **o contexto não é dividido entre os slots**: cada slot
+enxerga o contexto inteiro do perfil. Num perfil 256k, dois slots = duas conversas de 256k.
 
-```json
-"parallel": 2
+**Passo a passo:**
+
+1. Use o perfil de **contexto longo** (`strata-iq2_xs-256k.json` / o equivalente do Swift). É onde o
+   batching compensa: conversa grande é exatamente o que não cabe em contexto curto.
+2. Acrescente a chave ao mesmo nível de `model_name`:
+
+   ```json
+   {
+     "exe": "/home/YOU/llm/Strata/engine/strata",
+     "args": [ "…", "--max-context", "262144", "--kv", "int8", "--kv-resident", "32768" ],
+     "model_name": "swift-1.5-iq2_xs-256k",
+     "parallel": 2,
+     "sampling": { "temperature": 0.6, "top_p": 0.95, "top_k": 20, "min_p": 0.0, "presence_penalty": 1.5 }
+   }
+   ```
+
+3. Confirme a VRAM livre **antes** de recarregar: cada slot custa ~0,95 GiB de VRAM e mais a KV
+   pinada em RAM (~3 GiB por slot a 256k com `--kv-resident 32768`).
+4. Recarregue o perfil. Com `-watch-config`, salvar o `config.yaml` do llama-swap já derruba e sobe o
+   backend; o JSON do Strata é lido nesse momento. Se quiser forçar sem editar nada:
+   `curl -s localhost:8082/unload`.
+5. Aponte os **dois clientes para o mesmo modelo** (`llama-cpp/strata-swift-flash-next-256k`). Não
+   crie dois perfis apontando para o mesmo JSON: isso sobe dois engines, e dois engines Strata não
+   cabem juntos nesta máquina (ver adiante).
+6. Leia o log para conferir se pegou (`~/llm/Strata/strata-*.log`):
+
+   ```
+   --batch: 2 slot sessions on CUDA0 (0.95 GiB each); 9.88 GiB free
+   batch windows of up to 2 sequences (layers [0,48))
+   ```
+
+   E no llama-swap: `curl -s localhost:8082/running` deve mostrar o perfil `ready`. Um
+   `/v1/chat/completions` de teste em cada cliente responde em paralelo.
+
+**Perfil correspondente no llama-swap** (é só um `cmd` apontando para o JSON com `parallel`):
+
+```yaml
+"strata-flash-next-256k-parallel2":
+  name: "Qwen3.8-Flash-Next 125B-A6B · IQ2_XS · Strata · 256k · 2 sessões"
+  ttl: 600
+  cmd: /home/YOU/llm/Strata/strata-swap.sh /home/YOU/llm/Strata/strata-iq2_xs-256k-parallel2.json ${PORT}
 ```
 
-que o servidor traduz para `--batch 2` do engine (também `--slots`, faixa 2–8; docs do upstream em
-`docs/BATCHING.md`). O custo medido no Swift IQ2_XS a 256k:
+Um exemplo pronto desse JSON está em
+[`config/strata/strata-iq2_xs-256k-parallel2.json`](../config/strata/strata-iq2_xs-256k-parallel2.json)
+(identico ao `strata-iq2_xs-256k.json`, com `"parallel": 2`, `model_name` e `log` próprios). Ele **não**
+faz parte do `config/llama-swap.yaml` publicado: na nossa máquina quem roda em batch é o perfil 256k do
+Swift, e preferimos publicar como exemplo em vez de um perfil que não está em uso.
 
-| Custo | Valor medido |
+**Custo medido** (Swift 1.5 IQ2_XS a 256k, 2 slots, RX 9070 XT 16 GB / 54 GB de RAM):
+
+| Item | Valor |
 |---|---|
-| VRAM por slot | ~0,95 GiB (2 slots: `0.95 GiB each; 9.88 GiB free`) |
-| RAM pinada por slot (KV com `--kv-resident 32768`) | ~3 GiB |
-| Decode em batch | **sem MTP** (1 token por janela); sozinho, o slot volta ao caminho solo |
-| Na prática | 2 conversas de ~145k e ~198k tokens simultâneas, ~45 t/s no total, RAM 51/55 GB **sem swap** |
+| VRAM por slot | ~0,95 GiB (com 2 slots: 9,88 GiB livres no fim do load) |
+| RAM pinada por slot | ~3 GiB (KV `int8` com `--kv-resident 32768`) |
+| Duas conversas simultâneas | uma de ~145k e outra de ~198k de tokens, ~45 t/s **somadas**, RAM 51/55 GB sem swap |
+| MTP em batch | **desligado** — slot em batch decodifica 1 token por janela; sozinho ele volta ao caminho solo |
 
-O teto é a RAM: tentamos 5 slots — a VRAM cabia (4,74 GiB), mas o load fechou com a RAM em 54/54 GB e
-o PC entrou em thrash. Voltou para 2. Com 64 GB de RAM dariam 3 firmes; com 96 GB, os 5.
+**Por que 2 e não 5:** tentamos 5. A VRAM cabia (4,74 GiB), mas o load levou a RAM a 54/54 GB e a
+máquina entrou em thrash. Voltou para 2, que aguenta duas conversas de ~200k com folga. Como conta
+aproximada: `RAM disponível − 10 GB` para os experts, e ~3 GiB de KV pinada por slot em 256k — com
+64 GB de RAM dá para 3 firmes; com 96 GB, os 5 voltam ao jogo.
 
-Regras que saíram disso:
+**Quatro coisas que valem junto com o batching:**
 
-- **Nunca dois engines Strata rodando juntos** (arena de experts ~33 GiB cada). Antes de subir o
-  perfil de contexto longo: `curl -X POST -H 'Content-Type: application/json' localhost:8080/unload`
-  (ou o unload do llama-swap) e confirme `pgrep -f engine/strata` vazio.
-- O perfil de contexto longo fica com `ttl: 600`: sem tráfego por ~10 min ele devolve a RAM e o
-  principal reassume a GPU na próxima demanda. Para mantê-lo no ar, trafegue ou suba o `ttl`.
-- Se o agente devolver resposta cortada no meio, **não é contexto nem compactação**: é
-  `limit.output` do cliente (ver [docs/05](05-opencode.md#56-o-que-ocupa-o-contexto-e-por-que-não-vale-cache-semântico)).
-  O OpenCode v2 **não** continua sozinho uma resposta cortada.
+- **Dois engines Strata não rodam juntos** (cada um arena ~33 GiB de experts; 33+33 > 54 GB). Antes
+  de subir o perfil de contexto longo, descarregue o outro e confirme `pgrep -f engine/strata` vazio.
+  O serviço de embeddings (`:8083`) é separado e pode ficar ligado.
+- **Perfil de contexto longo com `ttl: 600`** devolve a RAM depois de ~10 min sem tráfego, e o
+  principal reassume a GPU na demanda seguinte. Para segurá-lo no ar, mantenha tráfego ou suba o `ttl`.
+- **Batch só paga com contexto grande / várias sessões.** Se os dois clientes usam 8k de prompt, os
+  ~3 GiB de KV pinada por slot são desperdiçados — melhor um perfil 32k/64k para cada um.
+- **`--prefill auto`** já deixa o chunk grande; em batch o prefill continua sequencial por request,
+  então o segundo cliente espera o primeiro terminar de ler o prompt.
 
 ## 4.7 O que ainda não sabemos
 
-- **IQ3_XXS no Strata com 54 GB de RAM**: o pack está feito e o perfil existe, mas o veredito é do
-  dono da máquina — não publico número porque não tenho medição limpa.
+- **IQ3_XXS no Strata com 54 GB de RAM**: o pack está feito e o perfil existe, mas ainda não temos
+  medição limpa — prefiro não publicar número adivinhado.
 - O `--ple-gguf` dos nossos JSONs do Swift aponta para o shard **1**. Para o GSQ-RCO original o PLE
   é o shard **2** (shard 1 é para o OrcaRouter). Provável erro nosso, não descoberto até esta
   revisão. Se copiar os configs para Swift, confira esse caminho.

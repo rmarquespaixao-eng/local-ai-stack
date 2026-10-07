@@ -48,12 +48,12 @@ systemctl --user enable --now llama-swap.service
 loginctl enable-linger "$USER"     # sobe sem você ter feito login gráfico (útil em headless)
 ```
 
-O **`ulimit -l unlimited` não é enfeite**: o llama.cpp usa `--load-mode mmap+mlock` e o Strata
-pinna experts na RAM. Com o `memlock` padrão (8 MiB) o mlock falha silenciosamente e você perde
-performance ou leva erro de alocação. Confira com `ulimit -l` dentro do serviço.
+O `ulimit -l unlimited` não é decorativo: o llama.cpp usa `--load-mode mmap+mlock` e o Strata pina
+experts na RAM. Com o `memlock` padrão (8 MiB) o pinnamento falha sem aviso e você perde performance ou
+leva erro de alocação. Confira com `ulimit -l` dentro do serviço.
 
-Rode **só em 127.0.0.1**. Se precisar expor para a LAN/WSL, use um `socat` dedicado
-(`scripts/` tem o padrão) em vez de mudar o `-listen`, para não virar um servidor aberto por engano.
+Mantenha o `-listen` em `127.0.0.1`. Para expor na LAN/WSL, prefira um proxy dedicado (socat) a abrir o
+llama-swap direto.
 
 ## 3.3 Estrutura do config
 
@@ -93,6 +93,7 @@ Macros que usamos e **por que existem** (todos no `config/llama-swap.yaml`):
 
 | Knob | O que faz | O que aprendemos |
 |---|---|---|
+| `--parallel` / `parallel` | quantas sessões o backend atende ao mesmo tempo | no llama.cpp o `-c` é **dividido** entre os slots; no Strata cada slot leva o contexto inteiro — ver [docs/04 §4.6](04-strata.md) |
 | `ttl: 600` | descarrega após 600 s ocioso | devolve ~40 GB de RAM; sem isso, o segundo modelo grande não entra |
 | `ttl: -1` / `ttl: 0` | ⚠️ **-1 não significa "nunca"**: significa *herdar o TTL global*. Quem significa "nunca" é **0**. Como não definimos `ttl` global (e o global padrão é 0), `-1` cai em "nunca" por acaso — se você poner um `ttl:` global, todos os perfis `-1` passam a descarregar | deixar o principal em `ttl: 0` explícito se você mexer no global |
 | `healthCheckTimeout` | espera o backend responder no health check | 600 s para MoE; valor baixo = llama-swap mata o load no meio e você vê "failed to start" |
@@ -110,13 +111,13 @@ curl -s localhost:8082/unload                             # descarrega tudo devo
 curl -s localhost:10001/props | head                      # n_ctx real, slots, KV — conferira o que o modelo achou
 ```
 
-`/props` é o detector de mentira mais útil do setup: ele mostra o `n_ctx` **de verdade**. Foi assim
-que descobrimos que `--parallel 2` divide o `-c` (pedia 128k, tinha 64k por slot).
+`/props` é o melhor detector de autoengano do setup: mostra o `n_ctx` efetivo. Foi assim que descobrimos
+que `--parallel 2` divide o `-c` (pedia 128k, tinha 64k por slot).
 
-**Dois comportamentos que parecem bug e são design:**
+Dois comportamentos que parecem bug e são o desenho:
 
-- **Reiniciar o llama-swap restaura o modelo que estava carregado.** Se você derrubou a IA de propósito
-  e reinicia o serviço, ele tenta subir tudo de novo. Derrube antes de reiniciar o daemon.
+- **Reiniciar o llama-swap restaura o modelo que estava carregado.** Se você descarregou de propósito e
+  reinicia o serviço, ele tenta subir tudo outra vez — descarregue antes de reiniciar.
 - **Um perfil "pinado" volta do unload sozinho se houver cliente conectado.** Nosso principal voltava a
   cada `/unload` porque uma aplicação Java e o Chrome mantinham conexões em `:8082`: o llama-swap se
   recupera da desconexão re-emindo o stream, e isso dispara o load. Diagnóstico: `ss -tnp | grep 8082`
