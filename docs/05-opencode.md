@@ -129,8 +129,12 @@ Consequências práticas:
    *para sempre*. O prompt precisa ser **plano** (tarefas numeradas, arquivos, critérios). Na mesma
    tarefa com prompt aberto: 1º edit no turno 40, 1 edição, 0 commits. Com plano: 1º edit no turno
    3, 13 edições, 1 commit, completa em 3,2 min.
-4. **`limit.output` generoso para quem planeja.** O planejador escreve o SPEC **dentro** da resposta;
-   com 8192 ele era cortado no meio do arquivo. Subimos para 32768 e o problema sumiu.
+4. **`limit.output` é o teto de *uma resposta* — e corta trabalho bom no meio.** O planejador escreve
+   o SPEC dentro da resposta: com 8192 ele parava no meio do arquivo. Subimos para 32768 e sumiu. No
+   perfil de contexto longo (256k) aconteceu o mesmo com o agente normal: `Output token limit reached`
+   **não** é falta de contexto nem compactação, é `limit.output`. E o OpenCode v2 **não** continua
+   sozinho uma resposta cortada (o "continue" é seu). Usamos 32768 em `strata-flash-next`,
+   `strata-flash-next-iq3xxs`, `strata-swift-flash-next*` e no 256k; os demais ficam em 8192.
 
 ## 5.7 MCPs: o vazamento que culpava o modelo
 

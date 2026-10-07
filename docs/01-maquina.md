@@ -81,9 +81,9 @@ Sinais de que você estourou o orçamento (todos ocorreram aqui):
    falhar alocação. O Strata no padrão deixava só ~700 MiB e travava o PC inteiro.
 2. **Um modelo grande por vez.** O principal ocupa ~46–50 GB de RAM. No llama-swap, `ttl: 600` em
    todo perfil que não precisa estar sempre quente.
-3. **`--parallel 1` em agente.** O llama.cpp **divide** o `-c` entre os slots: com `--parallel 2` e
-   `-c 128000`, cada agente enxerga 64k e a sessão morre com `finish_reason: length` — sem custo
-   extra de VRAM ao usar 1 slot. Só suba `--parallel` para swarm de agentes pequenos.
+3. **`--parallel 1` no llama.cpp em agente.** Ele **divide** o `-c` entre os slots: com `--parallel 2`
+   e `-c 128000`, cada agente enxerga 64k e a sessão morre com `finish_reason: length` — e 1 slot não
+   custa VRAM extra. (No Strata é o contrário: cada slot leva o contexto **inteiro** — ver docs/04.)
 4. **Sampling explícito em todo perfil.** Os padrões do motor quase nunca são os da model card, e
    greedy em modo reasoning é receita para loop de repetição.
 5. **Medir no `llama-server`, não no `llama-bench`.** O server gasta ~2 GB a mais de VRAM e tem

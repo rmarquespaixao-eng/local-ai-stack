@@ -168,7 +168,40 @@ O Strata tem três chaves próprias para isso (além do `ttl` do llama-swap), to
 > ficou 8 min parado em `pread` nesse cenário (relato documentado no upstream, #750/#920 também
 > discutem os timeouts de verify por suspensão de fila KFD sob reclaim).
 
-## 4.6 O que ainda não sabemos
+## 4.6 Batching: duas conversas grandes ao mesmo tempo
+
+Diferente do llama.cpp, aqui o batching **não divide o contexto**: cada slot leva o contexto inteiro.
+No JSON do servidor:
+
+```json
+"parallel": 2
+```
+
+que o servidor traduz para `--batch 2` do engine (também `--slots`, faixa 2–8; docs do upstream em
+`docs/BATCHING.md`). O custo medido no Swift IQ2_XS a 256k:
+
+| Custo | Valor medido |
+|---|---|
+| VRAM por slot | ~0,95 GiB (2 slots: `0.95 GiB each; 9.88 GiB free`) |
+| RAM pinada por slot (KV com `--kv-resident 32768`) | ~3 GiB |
+| Decode em batch | **sem MTP** (1 token por janela); sozinho, o slot volta ao caminho solo |
+| Na prática | 2 conversas de ~145k e ~198k tokens simultâneas, ~45 t/s no total, RAM 51/55 GB **sem swap** |
+
+O teto é a RAM: tentamos 5 slots — a VRAM cabia (4,74 GiB), mas o load fechou com a RAM em 54/54 GB e
+o PC entrou em thrash. Voltou para 2. Com 64 GB de RAM dariam 3 firmes; com 96 GB, os 5.
+
+Regras que saíram disso:
+
+- **Nunca dois engines Strata rodando juntos** (arena de experts ~33 GiB cada). Antes de subir o
+  perfil de contexto longo: `curl -X POST -H 'Content-Type: application/json' localhost:8080/unload`
+  (ou o unload do llama-swap) e confirme `pgrep -f engine/strata` vazio.
+- O perfil de contexto longo fica com `ttl: 600`: sem tráfego por ~10 min ele devolve a RAM e o
+  principal reassume a GPU na próxima demanda. Para mantê-lo no ar, trafegue ou suba o `ttl`.
+- Se o agente devolver resposta cortada no meio, **não é contexto nem compactação**: é
+  `limit.output` do cliente (ver [docs/05](05-opencode.md#56-o-que-ocupa-o-contexto-e-por-que-não-vale-cache-semântico)).
+  O OpenCode v2 **não** continua sozinho uma resposta cortada.
+
+## 4.7 O que ainda não sabemos
 
 - **IQ3_XXS no Strata com 54 GB de RAM**: o pack está feito e o perfil existe, mas o veredito é do
   dono da máquina — não publico número porque não tenho medição limpa.

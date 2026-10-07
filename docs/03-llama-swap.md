@@ -94,7 +94,7 @@ Macros que usamos e **por que existem** (todos no `config/llama-swap.yaml`):
 | Knob | O que faz | O que aprendemos |
 |---|---|---|
 | `ttl: 600` | descarrega após 600 s ocioso | devolve ~40 GB de RAM; sem isso, o segundo modelo grande não entra |
-| `ttl: -1` | nunca descarrega | só no principal: load de 35–90 s e 50 GB de RAM não é coisa para repetir |
+| `ttl: -1` / `ttl: 0` | ⚠️ **-1 não significa "nunca"**: significa *herdar o TTL global*. Quem significa "nunca" é **0**. Como não definimos `ttl` global (e o global padrão é 0), `-1` cai em "nunca" por acaso — se você poner um `ttl:` global, todos os perfis `-1` passam a descarregar | deixar o principal em `ttl: 0` explícito se você mexer no global |
 | `healthCheckTimeout` | espera o backend responder no health check | 600 s para MoE; valor baixo = llama-swap mata o load no meio e você vê "failed to start" |
 | `checkEndpoint: none` | não faz health check | use em perfil "proxy" (aponta para um servidor já rodando); o llama-swap **não** tem perfil proxy puro, então a gente usa `cmd: sleep infinity` |
 | `-watch-config` | recarrega ao salvar | ótimo, e perigoso **durante um teste** (derruba stream em uso) |
@@ -112,6 +112,15 @@ curl -s localhost:10001/props | head                      # n_ctx real, slots, K
 
 `/props` é o detector de mentira mais útil do setup: ele mostra o `n_ctx` **de verdade**. Foi assim
 que descobrimos que `--parallel 2` divide o `-c` (pedia 128k, tinha 64k por slot).
+
+**Dois comportamentos que parecem bug e são design:**
+
+- **Reiniciar o llama-swap restaura o modelo que estava carregado.** Se você derrubou a IA de propósito
+  e reinicia o serviço, ele tenta subir tudo de novo. Derrube antes de reiniciar o daemon.
+- **Um perfil "pinado" volta do unload sozinho se houver cliente conectado.** Nosso principal voltava a
+  cada `/unload` porque uma aplicação Java e o Chrome mantinham conexões em `:8082`: o llama-swap se
+  recupera da desconexão re-emindo o stream, e isso dispara o load. Diagnóstico: `ss -tnp | grep 8082`
+  antes de concluir que o unload "não funcionou". 
 
 ## 3.6 Checklist de um perfil novo
 

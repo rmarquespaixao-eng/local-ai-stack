@@ -48,6 +48,9 @@ Se está quebrado, procure aqui antes de reiniciar qualquer coisa. Organizado po
 | Editar config derruba stream em uso | `-watch-config` recarrega na hora | não editar durante benchmark; se editar, saber que a rodada é perdida |
 | Perfil "proxy" para um servidor já rodando | llama-swap não tem perfil proxy-only | `cmd: sleep infinity` + `checkEndpoint: none` (funciona, mas é gambiarra — o `cmdStop` é o caminho decente para containers) |
 | `/v1/models` não bate com o config | cache/UI enganosa | `curl localhost:8082/v1/models` cru |
+| Derrubei o modelo, reiniciei o serviço e ele voltou | o llama-swap **restaura o que estava carregado** no boot | derrube (`/unload`) antes de reiniciar o daemon |
+| O perfil "pinado" volta sozinho depois de cada `/unload` | clientes com conexão aberta em `:8082` (app Java, Chrome): o llama-swap se recupera da desconexão re-emindo o stream e isso dispara o load | `ss -tnp \| grep 8082` para achar o cliente; fechar o cliente, não lutar com o `ttl` |
+| `ttl: -1` descarregou o principal | `-1` **herda o TTL global** (não é "nunca"; "nunca" é `0`) | `ttl: 0` explícito no perfil crítico |
 
 ## 7.5 Agente (OpenCode)
 
@@ -60,6 +63,7 @@ Se está quebrado, procure aqui antes de reiniciar qualquer coisa. Organizado po
 | `opencode -m` não existe | na TUI v2 não há `-m` | `opencode.json` de projeto + `.git/info/exclude`, ou `/models` |
 | `exceed_context_size_error` no meio da sessão | llama.cpp **não tem** janela deslizante: estourou, erro | `limit.context` = `-c` real; o OpenCode compacta antes (a ~118k do nosso 128k), mas o erro ainda aparece se o cliente não compactar |
 | `opencode mcp list` vazio | bug do v2 (mente) | conferir o `opencode.json` e `/api/config`, não o `mcp list` |
+| Resposta do agente cortada no meio ("Output token limit reached") | `limit.output` do cliente, **não** é contexto nem compactação | subir para 32768 nos perfis de trabalho/planejamento ([docs/05](05-opencode.md)) |
 | Integração ACP na IDE: "no session table" | o registry da JetBrains fixa o **OpenCode v1.18** contra o `opencode.db` do **v2** (schema `session_v2`) | registrar o binário v2 como agente custom (`acp.json`) e reiniciar a IDE |
 
 ## 7.6 Método de medição (os erros que quase nos fizeram decidir errado)
