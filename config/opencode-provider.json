@@ -36,6 +36,13 @@
           "output": 8192
         }
       },
+      "muse-glimmer-30b-think": {
+        "name": "Muse Glimmer 30B · UD-IQ3_M · reasoning high",
+        "limit": {
+          "context": 131072,
+          "output": 8192
+        }
+      },
       "qwen3-coder-next": {
         "name": "qwen3-coder-next",
         "limit": {
