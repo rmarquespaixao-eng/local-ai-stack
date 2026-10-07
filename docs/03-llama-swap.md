@@ -95,7 +95,7 @@ Macros que usamos e **por que existem** (todos no `config/llama-swap.yaml`):
 |---|---|---|
 | `--parallel` / `parallel` | quantas sessões o backend atende ao mesmo tempo | no llama.cpp o `-c` é **dividido** entre os slots; no Strata cada slot leva o contexto inteiro — ver [docs/04 §4.6](04-strata.md) |
 | `ttl: 600` | descarrega após 600 s ocioso | devolve ~40 GB de RAM; sem isso, o segundo modelo grande não entra |
-| `ttl: -1` / `ttl: 0` | `-1` não é "nunca descarrega": é *herdar o TTL global*. O valor "nunca" é **0**. Como não definimos `ttl` global (e o global padrão é 0), `-1` cai em "nunca" por acaso — se você poner um `ttl:` global, todos os perfis `-1` passam a descarregar | deixar o principal em `ttl: 0` explícito se você mexer no global |
+| `ttl: -1` / `ttl: 0` | `-1` não significa "nunca descarrega": significa *herdar o TTL global*. O "nunca" é o valor **0**. Como não definimos `ttl` global (e o global padrão é 0), `-1` cai em "nunca" por acaso — se você poner um `ttl:` global, todos os perfis `-1` passam a descarregar | deixar o principal em `ttl: 0` explícito se você mexer no global |
 | `healthCheckTimeout` | espera o backend responder no health check | 600 s para MoE; valor baixo faz o llama-swap desistir do load no meio e você vê "failed to start" |
 | `checkEndpoint: none` | não faz health check | use em perfil "proxy" (aponta para um servidor já rodando); o llama-swap **não** tem perfil proxy puro, então a gente usa `cmd: sleep infinity` |
 | `-watch-config` | recarrega ao salvar | ótimo, e inconveniente durante um teste (interrompe o stream em uso) |

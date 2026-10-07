@@ -68,7 +68,7 @@ OpenCode → openai-compatible emite `reasoning_effort` → llama.cpp injeta em 
 
 Dois fatos que economizam tempo:
 
-- O `model` raiz do config **não retém** a variante; é preciso pedi-la por chamada (`#xhigh`) ou no
+- O `model` raiz do config não retém a variante: peça-a por chamada (`#xhigh`) ou no
   `/models` da TUI.
 - Perfil com `--reasoning off` + `enable_thinking:false` **ignora** as variantes. Se o seletor não
   faz nada, procure isso no cmd antes de assumir que o problema é do cliente.

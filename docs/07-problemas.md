@@ -37,7 +37,7 @@ caso que aconteceu nesta stack, com a causa e o que resolvemos.
 | HTTP 500 no Ministral | o template oficial **exige** alternância user/assistant | `--chat-template-file` com uma versão relaxada (`.jinja` próprio) |
 | Seletor de raciocínio não faz nada | `--reasoning on` no cmd fixa `enable_thinking=true` e ignora o `reasoning_effort`; ou `--reasoning off` no perfil instruct | deixar o template decidir: tirar o flag fixo e validar o Jinja |
 | Template custom "engolia" effort sem erro | o template embutido no GGUF tem `raise_exception` para effort inválido; o nosso tinha perdido o ramo `medium` | validar o template renderizando com Jinja2 e restaurar a validação |
-| "O modelo Q4_K_XL só faz 1,7 t/s" | medi o LM Studio, não o llama.cpp (mesmo arquivo: **34 t/s**) | conferir sempre o backend/executor antes de comparar números |
+| "O modelo Q4_K_XL só faz 1,7 t/s" | medi o LM Studio, não o llama.cpp (mesmo arquivo: **34 t/s**) | vale conferir o backend/executor antes de comparar números |
 
 ## 7.4 llama-swap
 
@@ -87,4 +87,4 @@ caso que aconteceu nesta stack, com a causa e o que resolvemos.
 
 > **Regra de ouro de diagnóstico:** não atribua ao modelo o que pode ser I/O, memória, config de motor ou
 > ferramenta. As "reprovações de modelo" que depois se explicaram por outro motivo (greedy do motor, MCP
-> travando, page eviction) estavam erradas, e cada uma custou dias de fila.
+> travando, page eviction) não eram do modelo — e cada uma dessas leituras custou dias de fila.
