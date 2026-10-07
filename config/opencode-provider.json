@@ -1,0 +1,301 @@
+{
+  "_comentario": "Cole o bloco `provider.llama-cpp` dentro de provider do ~/.config/opencode/opencode.json. `limit.context` deve bater com o -c/--max-context REAL (confirme em http://127.0.0.1:8082/props). No v2 do OpenCode, `variants` e objeto: array invalida o provider inteiro. Gere/ajuste com scripts/sync-opencode-models.py.",
+  "llama-cpp": {
+    "npm": "@ai-sdk/openai-compatible",
+    "name": "Local (llama-cpp :8082)",
+    "options": {
+      "baseURL": "http://127.0.0.1:8082/v1"
+    },
+    "models": {
+      "devstral-small-2": {
+        "name": "Devstral Small 2 · UD-Q3_K_XL · Local (texto)",
+        "limit": {
+          "context": 131072,
+          "output": 8192
+        }
+      },
+      "mistral-small-4": {
+        "name": "mistral-small-4",
+        "limit": {
+          "context": 131072,
+          "output": 8192
+        },
+        "variants": {
+          "off": {
+            "reasoningEffort": "none"
+          },
+          "high": {
+            "reasoningEffort": "high"
+          }
+        }
+      },
+      "muse-glimmer-30b": {
+        "name": "muse-glimmer-30b",
+        "limit": {
+          "context": 131072,
+          "output": 8192
+        }
+      },
+      "qwen3-coder-next": {
+        "name": "qwen3-coder-next",
+        "limit": {
+          "context": 131072,
+          "output": 8192
+        }
+      },
+      "qwen3.6-35b-a3b": {
+        "name": "qwen3.6-35b-a3b",
+        "limit": {
+          "context": 131072,
+          "output": 8192
+        },
+        "variants": {
+          "off": {
+            "reasoningEffort": "none"
+          },
+          "low": {
+            "reasoningEffort": "low"
+          },
+          "medium": {
+            "reasoningEffort": "medium"
+          },
+          "xhigh": {
+            "reasoningEffort": "xhigh"
+          }
+        }
+      },
+      "qwen3.8-gsq-s": {
+        "name": "Qwen3.8 27B · IQ3_S-MTP (ISTA GSQ) · Vulkan",
+        "limit": {
+          "context": 128000,
+          "output": 8192
+        },
+        "description": "Qwen3.8-27B GSQ-RCO IQ3_S com MTP embutido (ISTA-DASLab).",
+        "variants": {
+          "off": {
+            "reasoningEffort": "none"
+          },
+          "low": {
+            "reasoningEffort": "low"
+          },
+          "medium": {
+            "reasoningEffort": "medium"
+          },
+          "xhigh": {
+            "reasoningEffort": "xhigh"
+          }
+        }
+      },
+      "strata-flash-next": {
+        "name": "strata-flash-next",
+        "limit": {
+          "context": 131072,
+          "output": 32768
+        },
+        "variants": {
+          "off": {
+            "reasoningEffort": "none"
+          },
+          "low": {
+            "reasoningEffort": "low"
+          },
+          "medium": {
+            "reasoningEffort": "medium"
+          },
+          "xhigh": {
+            "reasoningEffort": "xhigh"
+          }
+        }
+      },
+      "strata-flash-next-256k": {
+        "name": "strata-flash-next-256k",
+        "limit": {
+          "context": 262144,
+          "output": 8192
+        },
+        "variants": {
+          "off": {
+            "reasoningEffort": "none"
+          },
+          "low": {
+            "reasoningEffort": "low"
+          },
+          "medium": {
+            "reasoningEffort": "medium"
+          },
+          "xhigh": {
+            "reasoningEffort": "xhigh"
+          }
+        }
+      },
+      "strata-flash-next-iq3xxs": {
+        "name": "strata-flash-next-iq3xxs",
+        "variants": {
+          "off": {
+            "reasoningEffort": "none"
+          },
+          "low": {
+            "reasoningEffort": "low"
+          },
+          "medium": {
+            "reasoningEffort": "medium"
+          },
+          "xhigh": {
+            "reasoningEffort": "xhigh"
+          }
+        },
+        "limit": {
+          "context": 131072,
+          "output": 32768
+        }
+      },
+      "strata-swift-flash-next": {
+        "name": "Swift 1.5 Flash-Next · IQ2_XS · Strata",
+        "limit": {
+          "context": 131072,
+          "output": 32768
+        },
+        "variants": {
+          "off": {
+            "reasoningEffort": "none"
+          },
+          "low": {
+            "reasoningEffort": "low"
+          },
+          "medium": {
+            "reasoningEffort": "medium"
+          },
+          "xhigh": {
+            "reasoningEffort": "xhigh"
+          }
+        }
+      },
+      "strata-swift-flash-next-128k": {
+        "name": "Swift 1.5 Flash-Next · IQ2_XS · Strata · 128k",
+        "limit": {
+          "context": 131072,
+          "output": 32768
+        },
+        "variants": {
+          "off": {
+            "reasoningEffort": "none"
+          },
+          "low": {
+            "reasoningEffort": "low"
+          },
+          "medium": {
+            "reasoningEffort": "medium"
+          },
+          "xhigh": {
+            "reasoningEffort": "xhigh"
+          }
+        }
+      },
+      "strata-swift-flash-next-256k": {
+        "name": "Swift 1.5 Flash-Next · IQ2_XS · Strata · 256k",
+        "limit": {
+          "context": 262144,
+          "output": 32768
+        },
+        "variants": {
+          "off": {
+            "reasoningEffort": "none"
+          },
+          "low": {
+            "reasoningEffort": "low"
+          },
+          "medium": {
+            "reasoningEffort": "medium"
+          },
+          "xhigh": {
+            "reasoningEffort": "xhigh"
+          }
+        }
+      },
+      "strata-swift-flash-next-32k": {
+        "name": "Swift 1.5 Flash-Next · IQ2_XS · Strata · 32k",
+        "limit": {
+          "context": 32768,
+          "output": 32768
+        },
+        "variants": {
+          "off": {
+            "reasoningEffort": "none"
+          },
+          "low": {
+            "reasoningEffort": "low"
+          },
+          "medium": {
+            "reasoningEffort": "medium"
+          },
+          "xhigh": {
+            "reasoningEffort": "xhigh"
+          }
+        }
+      },
+      "strata-swift-flash-next-64k": {
+        "name": "Swift 1.5 Flash-Next · IQ2_XS · Strata · 64k",
+        "limit": {
+          "context": 65536,
+          "output": 32768
+        },
+        "variants": {
+          "off": {
+            "reasoningEffort": "none"
+          },
+          "low": {
+            "reasoningEffort": "low"
+          },
+          "medium": {
+            "reasoningEffort": "medium"
+          },
+          "xhigh": {
+            "reasoningEffort": "xhigh"
+          }
+        }
+      },
+      "strata-swift-flash-next-96k": {
+        "name": "Swift 1.5 Flash-Next · IQ2_XS · Strata · 96k",
+        "limit": {
+          "context": 98304,
+          "output": 32768
+        },
+        "variants": {
+          "off": {
+            "reasoningEffort": "none"
+          },
+          "low": {
+            "reasoningEffort": "low"
+          },
+          "medium": {
+            "reasoningEffort": "medium"
+          },
+          "xhigh": {
+            "reasoningEffort": "xhigh"
+          }
+        }
+      },
+      "swift-1.5-27b": {
+        "name": "swift-1.5-27b",
+        "limit": {
+          "context": 128000,
+          "output": 8192
+        },
+        "variants": {
+          "off": {
+            "reasoningEffort": "none"
+          },
+          "low": {
+            "reasoningEffort": "low"
+          },
+          "medium": {
+            "reasoningEffort": "medium"
+          },
+          "xhigh": {
+            "reasoningEffort": "xhigh"
+          }
+        }
+      }
+    }
+  }
+}

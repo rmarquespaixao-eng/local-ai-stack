@@ -1,0 +1,150 @@
+# Config de referência do llama-swap (v260) — os perfis que usamos e o que medimos neles.
+#
+# ANTES DE USAR
+#   Troque /home/YOU pelo seu usuário (nos macros e nos cmds). Caminhos não aceitam `~`:
+#   o llama-swap faz substituição literal de macro, sem shell. Valide assim:
+#     llama-swap -config config.yaml -validate
+#   Com -watch-config o config recarrega ao salvar — NÃO edite durante um teste em andamento
+#   (derruba o stream: "stream ended without finish_reason").
+#
+# POR QUE CADA COISA ESTÁ AQUI
+#   healthCheckTimeout: 600  MoE grande leva 35-90 s para carregar; o padrão derruba o load.
+#   --fit on --fit-target 3072  deixa 3 GiB de VRAM para o desktop. Com folga de 1 GiB a tela
+#     congelou (amdgpu: page allocation failure em bo_pin). RX 9070 XT: 16.302 MiB totais.
+#   --parallel 1  o llama.cpp DIVIDE o -c entre slots: com --parallel 2 e -c 128000, cada agente
+#     enxerga 64k e morre com finish_reason=length. Um slot não custa VRAM extra.
+#   --ctx-checkpoints 32  NÃO gasta VRAM (snapshots da KV vão para a RAM do host) e evita
+#     reprocessar o contexto todo num rollback de cauda em modelos híbridos (0,55 s vs 2,39 s).
+#   sampling_* nos perfis  valores OFICIAIS da model card, passados explícitos. Nunca dependa do
+#     default do motor: greedy em modo reasoning = loop de repetição (ver docs/06 e docs/07).
+#   ttl: 600  devolve a RAM quando o modelo fica ocioso; só o principal usa ttl: -1 (~50 GB).
+#   Perfis unificados (2026-10-05)  um perfil por modelo; o raciocínio é escolhido pelo cliente
+#     (`reasoning_effort`: none|low|medium|xhigh) em vez de um perfil -instruct e um -think.
+#
+#   ${cbin} é um build do llama.cpp com o PR #29887 (cache de experts na VRAM, --moe-cache-mib);
+#     deu +22% t/s no qwen3-coder-next e +6,5% no mistral-small-4. Sem esse fork, troque ${cbin}
+#     por ${rbin} (ROCm) e apague o --moe-cache-mib dos dois perfis que o usam.
+#   Os perfis strata-* chamam o wrapper ${STRATA}/strata-swap.sh: sem o Strata instalado, remova-os
+#     (ou deixe-os e receba erro ao selecionar). Docs do motor: docs/04-strata.md.
+
+healthCheckTimeout: 600
+startPort: 10001
+macros:
+  vbin: /home/YOU/llama-engines/llama.cpp/build-vulkan/bin/llama-server
+  qtpl: /home/YOU/llm/templates/qwen3.8-template.jinja
+  sampling_qwen38_unif: "--temp 1.0 --top-p 0.95 --top-k 20 --repeat-penalty 1.0 --min-p 0.05 --presence-penalty 1.5"
+  sampling_ornith_unif: "--temp 0.6 --top-p 0.95 --top-k 20 --min-p 0.0 --repeat-penalty 1.0 --presence-penalty 1.5"
+  mtp2: "--spec-type draft-mtp --spec-draft-n-max 2 --spec-draft-n-min 0 --spec-draft-p-min 0 -ctkd q8_0 -ctvd q8_0"
+  cacheopt: "--cache-reuse 256 --ctx-checkpoints 32 --metrics"
+  rbin: /home/YOU/llama-engines/llama.cpp/build-rocm/bin/llama-server
+  M: /home/YOU/models
+  fitgpu: "--fit on --fit-target 1024 --parallel 1 --threads 8"
+  fitmoe_desk: "--fit on --fit-target 3072 --parallel 1 -b 4096 -ub 2048 --threads 16 --threads-batch 16 --load-mode mmap --lazy-mode on"
+  cbin: /home/YOU/llama-engines/llama.cpp-moecache/build-rocm/bin/llama-server
+  budget: "--reasoning-budget 4096 --reasoning-budget-message \"I have thought long enough -- let me produce the final answer now.\""
+  sampling_gemma: "--temp 1.0 --top-p 0.95 --top-k 64 --min-p 0.0 --repeat-penalty 1.0"
+  sampling_devstral: "--temp 0.15"
+  sampling_qcodernext: "--temp 1.0 --top-p 0.95 --top-k 40 --min-p 0.0 --repeat-penalty 1.0"
+
+models:
+  "qwen3.8-gsq-s":
+    name: "Qwen3.8 27B · IQ3_S-MTP (ISTA GSQ) · Vulkan · raciocínio pelo seletor"
+    model: /home/YOU/models/qwen3.8-27b/Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp.gguf
+    filterGguf: false
+    ttl: 600
+    cmd: ${vbin} --model /home/YOU/models/qwen3.8-27b/Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp.gguf --port ${PORT} -c 128000 -ctk q4_0 -ctv q4_0 -fa on -ngl 99 --parallel 1 --threads 8 --load-mode mmap+mlock --fit on ${mtp2} ${sampling_qwen38_unif} --reasoning-budget 4096 --reasoning-budget-message "I have thought long enough -- let me produce the final answer now." --jinja --chat-template-file ${qtpl} ${cacheopt}
+
+  "muse-glimmer-30b":
+    name: "Muse Glimmer 30B · UD-IQ3_M · reasoning low"
+    model: /home/YOU/models/muse-glimmer-30b/Muse-Glimmer-30B-UD-IQ3_M.gguf
+    filterGguf: false
+    ttl: 600
+    cmd: ${vbin} --model ${M}/muse-glimmer-30b/Muse-Glimmer-30B-UD-IQ3_M.gguf --port ${PORT} -c 131072 -ctk q8_0 -ctv q8_0 -fa on ${fitgpu} --jinja ${sampling_gemma} --chat-template-kwargs '{"reasoning_strength":"low"}' ${cacheopt}
+
+  "muse-glimmer-30b-think":
+    name: "Muse Glimmer 30B · UD-IQ3_M · reasoning high"
+    model: /home/YOU/models/muse-glimmer-30b/Muse-Glimmer-30B-UD-IQ3_M.gguf
+    filterGguf: false
+    ttl: 600
+    cmd: ${vbin} --model ${M}/muse-glimmer-30b/Muse-Glimmer-30B-UD-IQ3_M.gguf --port ${PORT} -c 131072 -ctk q8_0 -ctv q8_0 -fa on ${fitgpu} --jinja ${sampling_gemma} --chat-template-kwargs '{"reasoning_strength":"high"}' ${cacheopt}
+
+  "qwen3-coder-next":
+    name: "Qwen3-Coder-Next 80B-A3B · UD-IQ4_XS · ROCm"
+    model: /home/YOU/models/qwen3-coder-next/Qwen3-Coder-Next-UD-IQ4_XS.gguf
+    filterGguf: false
+    ttl: 600
+    cmd: ${cbin} --model ${M}/qwen3-coder-next/Qwen3-Coder-Next-UD-IQ4_XS.gguf --port ${PORT} -c 131072 -ctk q8_0 -ctv q8_0 -fa on ${fitmoe_desk} --moe-cache-mib 3500 --jinja ${sampling_qcodernext} ${cacheopt}
+
+  "swift-1.5-27b":
+    name: "Swift 1.5 27B · IQ3_S-MTP · Vulkan · raciocínio pelo seletor"
+    model: /home/YOU/models/swift-1.5-27b/Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp.gguf
+    filterGguf: false
+    ttl: 600
+    cmd: ${vbin} --model ${M}/swift-1.5-27b/Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp.gguf --port ${PORT} -c 128000 -ctk q4_0 -ctv q4_0 -fa on -ngl 99 --parallel 1 --threads 8 --load-mode mmap+mlock --fit on ${mtp2} ${sampling_qwen38_unif} ${budget} --jinja --chat-template-file ${qtpl} ${cacheopt}
+
+  "strata-flash-next":
+    name: "Qwen3.8-Flash-Next 125B-A6B · IQ2_XS · Strata · PRINCIPAL (raciocínio pelo seletor)"
+    ttl: -1
+    cmd: /home/YOU/llm/Strata/strata-swap.sh /home/YOU/llm/Strata/strata-iq2_xs.json ${PORT}
+
+  "qwen3.6-35b-a3b":
+    name: "Qwen3.6-35B-A3B · UD-Q4_K_XL · MTP · raciocínio pelo seletor"
+    model: /home/YOU/models/qwen3.6-35b-a3b/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf
+    filterGguf: false
+    ttl: 600
+    cmd: ${vbin} --model ${M}/qwen3.6-35b-a3b/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf --mmproj ${M}/qwen3.6-35b-a3b/mmproj-F16.gguf --port ${PORT} -c 131072 -ctk q8_0 -ctv q8_0 -fa on ${fitmoe_desk} ${mtp2} --jinja ${sampling_ornith_unif} ${budget} ${cacheopt}
+
+  "mistral-small-4":
+    name: "Mistral Small 4 119B-A6B · UD-IQ3_XXS · ROCm + cache MoE"
+    model: /home/YOU/models/mistral-small-4/Mistral-Small-4-119B-2603-UD-IQ3_XXS.gguf
+    filterGguf: false
+    ttl: 600
+    cmd: ${cbin} --model ${M}/mistral-small-4/Mistral-Small-4-119B-2603-UD-IQ3_XXS.gguf --port ${PORT} -c 131072 -ctk q8_0 -ctv q8_0 -fa on ${fitmoe_desk} --moe-cache-mib 3000 --jinja --temp 0.7 --top-p 1.0 --min-p 0.0 ${cacheopt}
+
+  "strata-swift-flash-next":
+    name: "Swift 1.5 Flash-Next 125B-A6B · IQ2_XS · Strata · raciocínio pelo seletor"
+    ttl: 600
+    cmd: /home/YOU/llm/Strata/strata-swap.sh /home/YOU/llm/Strata/strata-swift-iq2_xs.json ${PORT}
+
+  "strata-swift-flash-next-32k":
+    name: "Swift 1.5 Flash-Next 125B-A6B · IQ2_XS · Strata · 32k · raciocínio pelo seletor"
+    ttl: 600
+    cmd: /home/YOU/llm/Strata/strata-swap.sh /home/YOU/llm/Strata/strata-swift-iq2_xs-32k.json ${PORT}
+
+  "strata-swift-flash-next-64k":
+    name: "Swift 1.5 Flash-Next 125B-A6B · IQ2_XS · Strata · 64k · raciocínio pelo seletor"
+    ttl: 600
+    cmd: /home/YOU/llm/Strata/strata-swap.sh /home/YOU/llm/Strata/strata-swift-iq2_xs-64k.json ${PORT}
+
+  "strata-swift-flash-next-96k":
+    name: "Swift 1.5 Flash-Next 125B-A6B · IQ2_XS · Strata · 96k · raciocínio pelo seletor"
+    ttl: 600
+    cmd: /home/YOU/llm/Strata/strata-swap.sh /home/YOU/llm/Strata/strata-swift-iq2_xs-96k.json ${PORT}
+
+  "strata-swift-flash-next-128k":
+    name: "Swift 1.5 Flash-Next 125B-A6B · IQ2_XS · Strata · 128k · raciocínio pelo seletor"
+    ttl: 600
+    cmd: /home/YOU/llm/Strata/strata-swap.sh /home/YOU/llm/Strata/strata-swift-iq2_xs-128k.json ${PORT}
+
+  "strata-swift-flash-next-256k":
+    name: "Swift 1.5 Flash-Next 125B-A6B · IQ2_XS · Strata · 256k"
+    ttl: 600
+    cmd: /home/YOU/llm/Strata/strata-swap.sh /home/YOU/llm/Strata/strata-swift-iq2_xs-256k.json ${PORT}
+
+  "devstral-small-2":
+    name: "Devstral Small 2 24B · UD-Q3_K_XL · Vulkan · texto"
+    model: /home/YOU/models/devstral-small-2/Devstral-Small-2-24B-Instruct-2512-UD-Q3_K_XL.gguf
+    filterGguf: false
+    ttl: 600
+    cmd: ${vbin} --model ${M}/devstral-small-2/Devstral-Small-2-24B-Instruct-2512-UD-Q3_K_XL.gguf --port ${PORT} -c 131072 -ctk q8_0 -ctv q8_0 -fa on --fit on --fit-target 3072 --parallel 1 --threads 8 --jinja ${sampling_devstral} ${cacheopt}
+
+  "strata-flash-next-256k":
+    name: "Qwen3.8-Flash-Next 125B-A6B · IQ2_XS · Strata · INSTRUCT · 256k"
+    ttl: 600
+    cmd: /home/YOU/llm/Strata/strata-swap.sh /home/YOU/llm/Strata/strata-iq2_xs-256k.json ${PORT}
+
+  "strata-flash-next-iq3xxs":
+    name: "Qwen3.8-Flash-Next 125B-A6B · IQ3_XXS · Strata · raciocínio pelo seletor (teste)"
+    ttl: 600
+    cmd: /home/YOU/llm/Strata/strata-swap.sh /home/YOU/llm/Strata/strata-iq3_xxs.json ${PORT}
+

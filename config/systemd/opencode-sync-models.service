@@ -1,0 +1,7 @@
+[Unit]
+Description=Sincroniza a lista de modelos do llama-swap para o opencode.json
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/sync-opencode-models.py
+TimeoutStartSec=120
