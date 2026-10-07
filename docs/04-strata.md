@@ -111,7 +111,7 @@ O servidor aceita `reasoning_effort` no request e mapeia `low→low`, `medium→
 cliente não manda nada), isso dispensa o par de perfis `-instruct` / `-think`:
 
 ```json
-// strata-flash-next.shared-settings.json  →  padrão = pensa um pouco
+// strata-iq2_xs.shared-settings.json  →  padrão = pensa um pouco
 {"reasoning_effort": "low"}
 ```
 
@@ -147,7 +147,7 @@ quem abre):
 "strata-flash-next":
   name: "Qwen3.8-Flash-Next 125B-A6B · IQ2_XS · Strata · PRINCIPAL"
   ttl: -1
-  cmd: /home/YOU/llm/Strata/strata-swap.sh /home/YOU/llm/Strata/strata-flash-next.json ${PORT}
+  cmd: /home/YOU/llm/Strata/strata-swap.sh /home/YOU/llm/Strata/strata-iq2_xs.json ${PORT}
 ```
 
 ## 4.5 Dividir a placa com o resto da vida

@@ -56,7 +56,7 @@ para você.
 | Arquivo | O quê |
 |---|---|
 | [config/llama-swap.yaml](config/llama-swap.yaml) | Nosso config completo (macros + 17 perfis testados), comentado |
-| [config/strata/](config/strata/) | `strata-flash-next.json` (+ 256k), `.shared-settings.json` e o wrapper `strata-swap.sh` |
+| [config/strata/](config/strata/) | `strata-iq2_xs.json` (+ a variante 256k), os `.shared-settings.json` e o wrapper `strata-swap.sh` |
 | [config/opencode-provider.json](config/opencode-provider.json) | Bloco `provider.llama-cpp` para o `~/.config/opencode/opencode.json` |
 | [config/systemd/](config/systemd/) | Units de usuário: llama-swap, sync de modelos (service + timer) |
 | [scripts/ia.sh](scripts/ia.sh) | `ia on \| off \| status` — liga/desliga a stack (libera VRAM/RAM para jogar) |
