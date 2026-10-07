@@ -51,7 +51,8 @@ repo é para você.
 | [docs/05-opencode.md](docs/05-opencode.md) | Usar como agente: provider `openai-compatible`, sincronizar modelos, variantes de raciocínio, limites |
 | [docs/06-tuning.md](docs/06-tuning.md) | Sampling oficial por família, MTP/speculative, KV e contexto máximo, `--reasoning-budget`, armadilhas |
 | [docs/07-problemas.md](docs/07-problemas.md) | **22 problemas reais que tivemos e a solução de cada um** (comece aqui se está quebrado) |
-| [docs/08-avaliacao.md](docs/08-avaliacao.md) | Como testar se um modelo novo serve como executor (escada de provas + veredito) |
+| [docs/08-avaliacao.md](docs/08-avaliacao.md) | Como testar se um modelo novo serve como executor (escada de provas + veredito) — e como rodar os [fixtures](fixtures/README.md) publicados |
+| [templates/README.md](templates/README.md) | Os `.jinja` que ajustamos (effort validado, thinking desligado, alternância relaxada) e como validar sem subir modelo |
 
 ## Configurações de referência
 
@@ -64,6 +65,8 @@ repo é para você.
 | [scripts/ia.sh](scripts/ia.sh) | `ia on \| off \| status` — liga/desliga a stack (libera VRAM/RAM para jogar) |
 | [scripts/sync-opencode-models.py](scripts/sync-opencode-models.py) | Espelha os perfis do llama-swap no OpenCode preservando limites por modelo |
 | [scripts/fit-check.sh](scripts/fit-check.sh) | Oráculo de VRAM por GGUF/ctx/backend antes de subir o servidor |
+| [fixtures/](fixtures/README.md) | **Os 4 projetos de teste** (2 de execução, 2 de planejamento), com o aceite oculto, o prompt e `bootstrap.sh`/`verify.sh` |
+| [templates/](templates/README.md) | Os `.jinja` que ajustamos (reasoning effort validado, thinking desligado, alternância relaxada) + `check_render.py` |
 
 ## Começando em 6 passos
 
@@ -95,9 +98,10 @@ Detalhes de cada passo, com as flags reais e os números medidos, estão nos doc
 
 - Não é um fork nem um wrapper dos motores: llama.cpp, Strata, llama-swap e OpenCode são projetos
   de terceiros (links em cada doc). Nada aqui foi compilado ou escrito por nós além das configs.
-- Não inclui os *fixtures* de benchmark (`api-tarefas`, `agente-spring-ai`, `planejar-*`) nem o
-  harness `local-exec`: são repositórios de teste do nosso fluxo privado. Em
-  [docs/08-avaliacao.md](docs/08-avaliacao.md) está a receita completa para montar equivalentes.
+- Não inclui o nosso harness `local-exec` (eval/run/verify com watchdog) nem as skills de processo:
+  ficam fora porque dependem do nosso fluxo interno. Em [docs/08](docs/08-avaliacao.md) está a receita
+  equivalente, e em [fixtures/](fixtures/README.md) os 4 projetos de teste com `bootstrap.sh` e
+  `verify.sh`.
 - Não é recomendação de compra. Os números são do nosso hardware; o mesmo GGUF em outra placa se
   comporta de outro jeito (em [docs/01](docs/01-maquina.md) dizemos como medir o seu caso).
 

@@ -41,5 +41,5 @@ llama-swap -config config/llama-swap.yaml -validate      # 'config is valid: N m
 bash -n scripts/*.sh
 python3 -m py_compile scripts/sync-opencode-models.py
 grep -rnE '/home/[^Y]|/mnt/[a-z]+|sk-[a-zA-Z0-9_]{20}|gho_|api[Kk]ey *:' . \\
-  --exclude-dir=.git --exclude=CONTRIBUTING.md          # tem que dar vazio
+  --exclude-dir=.git --exclude=CONTRIBUTING.md          # o esperado é saída vazia
 ```

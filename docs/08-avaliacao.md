@@ -22,17 +22,26 @@ ferramenta?). É a informação que evita repetir o teste daqui a 3 meses — a 
 
 Um modelo pode "terminar a tarefa" escrevendo arquivos que não passam nos testes. Então:
 
+Os quatro fixtures deste repo estão em [`../fixtures/`](../fixtures/README.md), com esta estrutura:
+
 ```
-fixture/
-  repo.bundle          # git bundle do repositório-base, branch `fixture` (o que o modelo recebe)
-  fixture.json         # timeout, comandos de build/teste, o que está protegido
-  acceptance/          # não vai para o modelo — só para o avaliador
-    tests/…            # os testes que decidem o veredito
-    reference.patch    # opcional: uma solução known-good para validar o oráculo
+fixtures/<nome>/
+  repo/                 # o que o modelo recebe (SPEC.md, TASKS.md, build, código base)
+  acceptance/           # não vai para o modelo — só para o avaliador
+  fixture.json          # setup, protect, timeout, verify_cmd, baseline
+  PROMPT-EXECUTOR.txt   # prompt de execução
+  PROMPT-PLANEJADOR.txt # só nos de planejamento
+  referencia.patch      # opcional: solução known-good para validar o oráculo
 ```
 
-**Validar o oráculo antes de usar:** rode os testes contra a referência (tem que dar 100%) e contra o
-repositório base (tem que dar ~0%). Se a base passa, o teste não está medindo nada. Nos nossos fixtures de
+```bash
+./fixtures/bootstrap.sh api-tarefas /tmp/run-api    # cria o repo na branch `fixture`
+./fixtures/verify.sh   api-tarefas /tmp/run-api     # injeta o aceite, roda, limpa, e avisa se
+                                                    # o modelo tocou em arquivo do `protect`
+```
+
+**Validar o oráculo antes de usar:** rode os testes contra a referência (deve dar 100%) e contra o
+repositório base (deve dar perto de 0%). Se a base passa, o teste ainda não está medindo nada. Nos nossos fixtures de
 planejamento: referência 30/30, base 21/30 — daí o teste ser útil.
 
 Armadilhas que os testes precisam pegar (e pegaram): resposta HTTP errada (404 vs 200), contrato de
@@ -69,17 +78,18 @@ isolamento ([docs/07](07-problemas.md#76-método-de-medição-os-erros-que-quase
 6. **Reprovado: registre e arquive.** Mover para `REPROVADOS/` + comentar o perfil com
    `# [REPROVADO <data> — <motivo>]`. Apague o GGUF só por decisão explícita.
 
-## 8.5 Como montar fixtures equivalentes (sem os nossos)
+## 8.5 O que tem pronto em `fixtures/` — e como fazer os seus
 
-Nossos repositórios de teste não vão neste repo (são privados), mas a receita é curta e o resultado
-é o que importa: um serviço pequeno, build forte, testes que o modelo não vê.
+Os quatro que usamos vêm neste repo ([`../fixtures/`](../fixtures/README.md) tem o passo a passo e os
+detalhes de cada um). A receita para montar equivalentes no seu domínio é curta, e o resultado é o que
+importa: um serviço pequeno, build exigente, testes que o modelo não vê.
 
-**Degrau 2 — `api-tarefas` (TypeScript):**
+**Degrau 2 — `api-tarefas` (TypeScript, publicado em `fixtures/api-tarefas`):**
 - Node 24 com TypeScript nativo (sem build step), `package.json` com `test` e `typecheck`.
 - 4 tarefas em `TASKS.md` (ex.: criar rota, validar payload, adicionar campo, corrigir estado).
 - 6 testes de aceite por HTTP (status code, forma do JSON, persistência) que falham no repositório base.
 
-**Degrau 3 — `agente-spring-ai` (Java):**
+**Degrau 3 — `agente-spring-ai` (Java, publicado em `fixtures/agente-spring-ai`):**
 - 3 módulos (`core`, `spring-ai`, `app`), Spring Boot 4 + Spring AI 2.0.1 + Jackson 3, `-Werror`.
 - 8 tarefas que exigem mexer em contrato de tipos + bean + prompt.
 - 22 testes ocultos (11 + 7 + 4 por módulo) com um fake do `ChatModel` — **e um teste E2E opcional que
@@ -88,7 +98,8 @@ Nossos repositórios de teste não vão neste repo (são privados), mas a receit
   `{{`). Modelos que "normalizam" o prompt caem aí.
 - Detalhe que consome tempo: no Spring AI 2.0, `base-url` precisa do sufixo `/v1`.
 
-**Provas de planejamento (o degrau 4, que criamos depois):**
+**Provas de planejamento (degrau 4, publicadas em `fixtures/planejar-tarefas` e
+`fixtures/planejar-agente`):**
 - `planejar-tarefas`: o modelo recebe só um `FEATURE.md` de produto (3 frases), escreve `SPEC.md` +
   `TASKS.md`, e **outro** modelo executa; 8 testes HTTP decidem. Referência 8/8, base 1/8.
 - `planejar-agente`: o mesmo em uma feature grande em Java **sem quebrar compatibilidade** com 21
@@ -96,30 +107,30 @@ Nossos repositórios de teste não vão neste repo (são privados), mas a receit
 - Por que dois modelos? Porque "planejar" e "executar" são competências diferentes: o mesmo modelo que
   planejou 8/8, executa melhor **sem** raciocínio (~45% mais rápido com o mesmo resultado).
 
-## 8.6 Script mínimo de um run
+## 8.6 O laço de um run
 
-Sem framework, para você copiar:
+`bootstrap.sh` + `verify.sh` (em [`../fixtures/`](../fixtures/README.md)) já fazem o trabalho chato —
+criar a branch `fixture`, injetar o aceite, rodar o `verify_cmd`, avisar sobre arquivo protegido e
+limpar o repo depois. O que fica do seu lado é só chamar o modelo:
 
 ```bash
-PERFIL=strata-flash-next
-REPO=/tmp/eval-$PERFIL
-rm -rf "$REPO"; git clone --branch fixture ~/bench/fixtures/api-tarefas/repo.bundle "$REPO"
-cd "$REPO"
+FX=api-tarefas; PERFIL=strata-flash-next; D=/tmp/eval-$PERFIL-$FX
+./fixtures/bootstrap.sh "$FX" "$D"
+cd "$D"
 echo '{"model":"llama-cpp/'"$PERFIL"'"}' > opencode.json
 echo 'opencode.json' >> .git/info/exclude
+pnpm install --frozen-lockfile            # Java: ./gradlew tasks
 
 # config isolado: sem MCPs, para nada externo contaminar o tempo
 XDG_CONFIG_HOME=/tmp/xdg-$PERFIL timeout 1800 opencode run --standalone --auto \
-  --model "llama-cpp/$PERFIL#off" --format json "$(cat acceptance/../PROMPT.txt)" \
+  --model "llama-cpp/$PERFIL#off" --format json "$(cat ../fixtures/$FX/PROMPT-EXECUTOR.txt)" \
   > "run-$PERFIL.jsonl" 2>&1
 
-# avalia: tarefas marcadas, commits, arquivos protegidos, e o aceite oculto
-git log --oneline origin/fixture..HEAD
-cp -r ~/bench/fixtures/api-tarefas/acceptance/tests tests/ && pnpm test
+../fixtures/verify.sh "$FX" "$D"          # aceite + exit code + aviso de protegidos
+git log --oneline $(git rev-list --max-parents=0 HEAD)..HEAD   # foi commitando por tarefa?
 ```
 
-O `--model "$PERFIL#off"` é o ponto: o mesmo modelo, duas competências. Um run de execução com
-raciocínio ligado não é comparável a um sem.
+O detalhe que importa é o `#off`: um run de execução com raciocínio ligado não é comparável a um sem.
 
 ## 8.7 O que medimos e onde ficaram as dúvidas
 

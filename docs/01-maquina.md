@@ -106,7 +106,7 @@ Tudo parametrizável; só evite o disco do sistema para os pesos (leitura sequen
 | `~/llama-engines/` | builds do llama.cpp (`build-vulkan/`, `build-rocm/`) e o binário+config do llama-swap |
 | `~/llm/Strata/` | motor Strata, JSONs de config, wrapper `strata-swap.sh`, logs |
 | `~/llm/Strata-data/` | packs gerados pelo setup e cabeça MTP |
-| `~/llm/templates/` | chat templates `.jinja` customizados |
+| `~/llm/templates/` | chat templates `.jinja` customizados (publicados em [`../templates/`](../templates/README.md)) |
 | `~/.config/llama-swap/config.yaml` | symlink/origem do config (mantenha um só arquivo real) |
 | `~/.config/opencode/opencode.json` | providers, limites, MCPs do agente |
 

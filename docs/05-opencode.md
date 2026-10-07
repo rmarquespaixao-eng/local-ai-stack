@@ -38,7 +38,7 @@ aqui são do OpenCode, mas as armadilhas de contexto/sampling valem para todos.
 - **Use o llama-swap (:8082), não a porta do backend direto.** A porta do backend muda a cada troca
   de modelo; o llama-swap é a porta fixa.
 - `limit.context` deve bater com o `-c`/`--max-context` real (confirme em `/props`). Errar para cima
-  = `exceed_context_size_error` no meio da sessão; errar para baixo = você joga contexto fora.
+  = `exceed_context_size_error` no meio da sessão; errar para baixo desperdiça contexto.
 
 ## 5.2 Uma armadilha que nos custou um dia: `variants` é objeto, não array
 
