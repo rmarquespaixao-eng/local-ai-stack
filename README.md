@@ -55,7 +55,7 @@ para você.
 
 | Arquivo | O quê |
 |---|---|
-| [config/llama-swap.yaml](config/llama-swap.yaml) | Nosso config completo (macros + 16 perfis testados), comentado |
+| [config/llama-swap.yaml](config/llama-swap.yaml) | Nosso config completo (macros + 17 perfis testados), comentado |
 | [config/strata/](config/strata/) | `strata-flash-next.json` (+ 256k), `.shared-settings.json` e o wrapper `strata-swap.sh` |
 | [config/opencode-provider.json](config/opencode-provider.json) | Bloco `provider.llama-cpp` para o `~/.config/opencode/opencode.json` |
 | [config/systemd/](config/systemd/) | Units de usuário: llama-swap, sync de modelos (service + timer) |
@@ -63,7 +63,7 @@ para você.
 | [scripts/sync-opencode-models.py](scripts/sync-opencode-models.py) | Espelha os perfis do llama-swap no OpenCode preservando limites por modelo |
 | [scripts/fit-check.sh](scripts/fit-check.sh) | Oráculo de VRAM por GGUF/ctx/backend antes de subir o servidor |
 
-## Começando em 10 passos
+## Começando em 6 passos
 
 ```bash
 # 0. ajuste os caminhos do config de referência para a sua máquina (procure por /home/YOU)

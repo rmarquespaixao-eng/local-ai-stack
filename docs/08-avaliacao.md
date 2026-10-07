@@ -1,7 +1,6 @@
 # 8. Como saber se um modelo serve (a escada de provas)
 
-Velocidade e benchmark de texto **não preveem** nada do que importa para agente. Dos 17 modelos que
-passaram por aqui, muitos eram rápidos e só 4 fecharam a prova difícil. Esta é a metodologia que
+Velocidade e benchmark de texto **não preveem** nada do que importa para agente. Dos 19 modelos que passaram por aqui, muitos eram rápidos e só 4 fecharam a prova difícil. Esta é a metodologia que
 usamos — e que você pode reproduzir com fixtures seus.
 
 ## 8.1 A escada (3 degraus, pare no primeiro "não")
