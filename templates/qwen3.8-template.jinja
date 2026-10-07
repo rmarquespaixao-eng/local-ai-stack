@@ -1,0 +1,95 @@
+{%- set image_count = namespace(value=0) %}
+{%- set video_count = namespace(value=0) %}
+{%- macro render_content(content) %}
+    {%- if content is string %}
+        {{- content }}
+    {%- elif content is iterable and content is not mapping %}
+        {%- for item in content %}
+            {%- if 'image' in item or 'image_url' in item or item.type == 'image' %}
+                {{- '<|vision_start|><|image_pad|><|vision_end|>' }}
+            {%- elif 'video' in item or item.type == 'video' %}
+                {{- '<|vision_start|><|video_pad|><|vision_end|>' }}
+            {%- elif 'text' in item %}
+                {{- item.text }}
+            {%- endif %}
+        {%- endfor %}
+    {%- endif %}
+{%- endmacro %}
+{%- if not messages %}
+    {{- raise_exception('No messages provided.') }}
+{%- endif %}
+{%- set reasoning_instructions = '' %}
+{%- if enable_thinking is undefined or enable_thinking is true %}
+    {%- set resolved_reasoning_effort = reasoning_effort|default('low') %}
+    {%- if resolved_reasoning_effort not in ('low', 'medium', 'xhigh') %}
+        {{- raise_exception('Unexpected reasoning effort ' ~ reasoning_effort ~ '. Supported types are low (default), medium, and xhigh.') }}
+    {%- endif %}
+    {%- if resolved_reasoning_effort == 'low' %}
+        {%- set reasoning_instructions = 'Reasoning effort: low. Keep thinking brief, concise, and move directly to the final answer.' %}
+    {%- elif resolved_reasoning_effort == 'medium' %}
+        {%- set reasoning_instructions = 'Reasoning effort: medium. Think through the problem at a balanced level of depth before answering.' %}
+    {%- elif resolved_reasoning_effort == 'xhigh' %}
+        {%- set reasoning_instructions = 'Reasoning effort: xhigh. Think carefully, validate edge cases and prioritize correctness.' %}
+    {%- endif %}
+{%- endif %}
+{%- set has_system_msg = messages[0].role == 'system' %}
+{%- set system_body = render_content(messages[0].content)|trim if has_system_msg else '' %}
+{%- set has_tools = tools and tools is iterable and tools is not mapping %}
+{%- if system_body or reasoning_instructions or has_tools %}
+    {{- '<|im_start|>system\n' }}
+    {%- if reasoning_instructions %}
+        {{- reasoning_instructions + ('\n\n' if system_body or has_tools else '') }}
+    {%- endif %}
+    {%- if system_body %}
+        {{- system_body + ('\n\n' if has_tools else '') }}
+    {%- endif %}
+    {%- if has_tools %}
+        {{- '# Tools\n<tools>' }}
+        {%- for tool in tools %}
+            {{- '\n' + (tool | tojson) }}
+        {%- endfor %}
+        {{- '\n</tools>\nUse <tool_call>\n<function=name>\n<parameter=param>\nvalue\n</parameter>\n</function>\n</tool_call> to invoke a tool.' }}
+    {%- endif %}
+    {{- '<|im_end|>\n' }}
+{%- endif %}
+{%- for message in messages %}
+    {%- if message.role != 'system' %}
+        {%- set content = render_content(message.content)|trim %}
+        {%- if message.role == 'user' %}
+            {{- '<|im_start|>user\n' + content + '<|im_end|>\n' }}
+        {%- elif message.role == 'assistant' %}
+            {{- '<|im_start|>assistant\n' }}
+            {%- if message.reasoning_content %}
+                {{- '<think>\n' + message.reasoning_content|trim + '\n</think>\n\n' }}
+            {%- endif %}
+            {{- content }}
+            {%- if message.tool_calls %}
+                {%- for tool_call in message.tool_calls %}
+                    {%- set tc = tool_call.function if tool_call.function is defined else tool_call %}
+                    {{- '\n<tool_call>\n<function=' + tc.name + '>\n' }}
+                    {%- if tc.arguments %}
+                        {%- if tc.arguments is mapping %}
+                            {%- for k, v in tc.arguments|items %}
+                                {{- '<parameter=' + k + '>\n' + (v | string if v is string else v | tojson) + '\n</parameter>\n' }}
+                            {%- endfor %}
+                        {%- else %}
+                            {{- '<parameter=arguments>\n' + tc.arguments|string + '\n</parameter>\n' }}
+                        {%- endif %}
+                    {%- endif %}
+                    {{- '</function>\n</tool_call>' }}
+                {%- endfor %}
+            {%- endif %}
+            {{- '<|im_end|>\n' }}
+        {%- elif message.role == 'tool' %}
+            {{- '<|im_start|>user\n<tool_response>\n' + content + '\n</tool_response><|im_end|>\n' }}
+        {%- endif %}
+    {%- endif %}
+{%- endfor %}
+{%- if add_generation_prompt %}
+    {{- '<|im_start|>assistant\n' }}
+    {%- if enable_thinking is defined and enable_thinking is false %}
+        {{- '<think>\n\n</think>\n\n' }}
+    {%- else %}
+        {{- '<think>\n' }}
+    {%- endif %}
+{%- endif %}
