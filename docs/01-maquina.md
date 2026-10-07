@@ -91,7 +91,7 @@ Sinais de que o orçamento passou do limite (todos já apareceram aqui):
 5. **Medir no `llama-server`, não no `llama-bench`.** O server gasta ~2 GB a mais de VRAM e tem
    preferências diferentes de ubatch. Benchmark ≠ servidor.
 6. **Evite editar o config do llama-swap durante um teste.** Com `-watch-config` ele recarrega e interrompe
-   o stream em uso (`stream ended without finish_reason`). Perdemos uma avaliação inteira assim.
+   o stream em uso (`stream ended without finish_reason`). Perdi uma avaliação inteira assim.
 7. **Reprovado fica registrado, em vez de apagado.** Mover o GGUF para uma pasta `REPROVADOS/` e comentar
    o perfil com `# [REPROVADO <data> — <motivo>]`. Daqui a 3 meses você vai querer saber por que
    aquilo saiu.

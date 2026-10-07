@@ -9,7 +9,7 @@ caso que aconteceu nesta stack, com a causa e o que resolvi.
 |---|---|---|
 | Tela congela 2–10 s sob carga de IA | VRAM livre ≤ 1 GiB: o compositor pede buffer, o `amdgpu` move memória de GPU p/ GTT e falha (`page allocation failure` / `Failed to pin framebuffer -12`) | llama.cpp `--fit on --fit-target 3072`; Strata `--vram-reserve-mib 3072`. Não é ajuste de gosto: com 1 GiB de folga congelava, com 3 GiB parou |
 | `--fit on` aborta no load | `-ngl 99` + `--fit` e o modelo não cabe: llama.cpp **aborta**, não reduz contexto | baixar quant/camadas, ou `-ngl` parcial + `--n-cpu-moe` |
-| Hangs de vídeo (MES/SDMA timeout, reset falha `-110`) em carga **leve** | undervolt de `-90/-70 mV` no perfil LACT que a placa não sustenta | zerar `voltage_offset` nos perfis; se voltar, subir firmware MES / kernel LTS. (Zeramos e parou) |
+| Hangs de vídeo (MES/SDMA timeout, reset falha `-110`) em carga **leve** | undervolt de `-90/-70 mV` no perfil LACT que a placa não sustenta | zerar `voltage_offset` nos perfis; se voltar, subir firmware MES / kernel LTS. (Zerei e parou) |
 | Strata carregado deixa o PC parado | padrão do motor reservava ~700 MiB de VRAM | `--vram-reserve-mib 3072` (o upstream hoje recomenda o mesmo em Linux desktop) |
 | Engine Strata continua rodando depois de "parar" o modelo | o SIGTERM encerrou o Python, não o engine filho → ~14 GB de VRAM ficam órfãos | wrapper com `setsid` + `trap` que mata o **grupo** ([docs/04](04-strata.md)) |
 | Decode cai de 102 para 13 t/s sem nenhum erro | cache de experts maior que a VRAM: a alocação "cabe" em sysmem e só a velocidade denuncia | deixar `--expert-cache auto`, que re-confere depois de escrever os slots |

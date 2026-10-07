@@ -82,7 +82,7 @@ nos híbridos. Não decore — use o oráculo:
 
 ```bash
 llama-fit-params --model arquivo.gguf -fitp on -c 131072 -ctk q8_0 -ngl 99 --backend-rocm
-# imprime: pesos | KV | compute por backend, sem inferir. Calibramos ±2% contra rocm-smi real.
+# imprime: pesos | KV | compute por backend, sem inferir. Calibrei ±2% contra rocm-smi real.
 ```
 
 Armadilhas medidas (cada uma me custou tempo):
@@ -134,7 +134,7 @@ cmake --build build-rocm -j32
 ```
 
 O fork/PR do cache de experts (`--moe-cache-mib`, PR ggml#29887) deu +22% t/s no coder-next e +6,5% no
-agentworld em 16 GB, sem pinagem e com o `--fit` descontando o cache. Aplicamos em 14 perfis MoE com
+agentworld em 16 GB, sem pinagem e com o `--fit` descontando o cache. Apliquei em 14 perfis MoE com
 ~10% dos experts no cache.
 
 ## 6.6 Ordem sensata para tunar um modelo novo

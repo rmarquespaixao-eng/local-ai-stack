@@ -86,7 +86,7 @@ ln ../IQ2_XS/Qwen3.8-Flash-Next-GSQ-RCO-IQ2_XS-00002-of-00002.gguf \
    Qwen3.8-Flash-Next-GSQ-RCO-IQ3_XXS-00002-of-00002.gguf     # mesmo conteúdo, nome do padrão da quant
 ```
 
-Conferimos os SHA-256 dos dois shards e são iguais; se você estiver em outra revision do repositório,
+Conferi os SHA-256 dos dois shards: são iguais; se você estiver em outra revision do repositório,
 compare antes de hardlinkar (`sha256sum` de um pedaço já basta para a tabela).
 
 **Para 32 GB de RAM:** a variante Coder tem metade dos experts podados (`IQ1_M/…-00001` = 29,6 GB,

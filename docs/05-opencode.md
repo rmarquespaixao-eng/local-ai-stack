@@ -1,7 +1,7 @@
 # 5. OpenCode — o agente que usa o modelo local
 
 O llama-swap dá uma API OpenAI-compatível. Falta o **executor**: o programa que lê seu repositório,
-chama o modelo, edita arquivos, roda testes e commita. Usamos o **OpenCode v2** (`v2.0.23`).
+chama o modelo, edita arquivos, roda testes e commita. Eu uso o **OpenCode v2** (`v2.0.23`).
 
 Serve qualquer cliente que fale `/v1/chat/completions` (Cline, Continue, aider…). Os detalhes
 aqui são do OpenCode, mas as armadilhas de contexto/sampling valem para todos.
@@ -108,7 +108,7 @@ Rode com `--dry-run` primeiro. A unit `opencode-sync-models.timer` faz isso a ca
 
 ## 5.6 O que ocupa o contexto (e por que não vale cache semântico)
 
-Medimos no SQLite do OpenCode (`~/.local/share/opencode/opencode.db`, campo `tokens.cache.read`):
+Medi no SQLite do OpenCode (`~/.local/share/opencode/opencode.db`, campo `tokens.cache.read`):
 
 | Mede | Meu número |
 |---|---|
@@ -130,10 +130,10 @@ Consequências práticas:
    tarefa com prompt aberto: 1º edit no turno 40, 1 edição, 0 commits. Com plano: 1º edit no turno
    3, 13 edições, 1 commit, completa em 3,2 min.
 4. **`limit.output` é o teto de *uma resposta* — e corta trabalho bom no meio.** O planejador escreve
-   o SPEC dentro da resposta: com 8192 ele parava no meio do arquivo. Subimos para 32768 e sumiu. No
+   o SPEC dentro da resposta: com 8192 ele parava no meio do arquivo. Subi para 32768 e sumiu. No
    perfil de contexto longo (256k) aconteceu o mesmo com o agente normal: `Output token limit reached`
    **não** é falta de contexto nem compactação, é `limit.output`. E o OpenCode v2 **não** continua
-   sozinho uma resposta cortada (o "continue" é seu). Usamos 32768 em `strata-flash-next`,
+   sozinho uma resposta cortada (o "continue" é seu). Uso 32768 em `strata-flash-next`,
    `strata-flash-next-iq3xxs`, `strata-swift-flash-next*` e no 256k; os demais ficam em 8192.
 
 ## 5.7 MCPs: a lentidão que parecia ser do modelo

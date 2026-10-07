@@ -18,7 +18,7 @@ O template embutido no GGUF declara os esforços que aceita e levanta exceção.
 passei a usar variantes `low`/`medium`/`xhigh` pelo OpenCode, duas coisas apareceram:
 
 1. O ramo `medium` tinha se perdido na cópia custom do template → o esforço virava `xhigh` em silêncio.
-   Restauramos a **validação explícita** (`not in ('low','medium','xhigh') → raise_exception`) para que
+   Restaurei a **validação explícita** (`not in ('low','medium','xhigh') → raise_exception`) para que
    esforço errado estoure na carga em vez de virar comportamento mudo.
 2. O default era `xhigh`. Para agente, deixar `low` como default economiza tempo sem perder a tarefa.
    Ficou: `reasoning_effort|default('low')`, com uma instrução de esforço injetada no system por ramo.
@@ -43,7 +43,7 @@ A tabela de mapeamento que o cliente precisa respeitar (é o que o OpenCode mand
 
 O template oficial do Ministral 3 fazia `raise_exception` se duas mensagens `user` aparecessem
 consecutivas. Agentes mandam lembrete/system-reminder logo após uma mensagem do usuário — e o
-`llama-server` respondia **500**. Removemos só essa checagem de alternância, mantendo o resto idêntico
+`llama-server` respondia **500**. Removi só essa checagem de alternância, mantendo o resto idêntico
 ao original. Foi a correção que fez o modelo chegar a rodar a prova (e aí reprovar por comportamento,
 não por template — ver [../docs/02-modelos.md](../docs/02-modelos.md)).
 

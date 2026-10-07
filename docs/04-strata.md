@@ -115,7 +115,7 @@ cliente não manda nada), isso dispensa o par de perfis `-instruct` / `-think`:
 {"reasoning_effort": "low"}
 ```
 
-Fizemos a unificação em 2026-10-05: **um perfil, um sampling, três níveis**. Menos superfície para
+Fiz a unificação em 2026-10-05: **um perfil, um sampling, três níveis**. Menos superfície para
 config divergir. O alto (`high`, que no motor vira `xhigh`) é o modo de *planejar*; o `none` é o de
 *executar*. Executar com raciocínio custou ~45% mais tempo sem nenhum ganho de qualidade medido.
 
